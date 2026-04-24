@@ -1,0 +1,445 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ROTFADEN | Communications Design Studio</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;700;900&display=swap');
+
+        :root {
+            --primary-red: #ff0000;
+            --dark: #0f172a;
+            --light: #f8fafc;
+            --gray: #64748b;
+            --white: #ffffff;
+        }
+
+        * { box-sizing: border-box; }
+
+        body, html {
+            margin: 0; padding: 0;
+            width: 100%; font-family: 'Inter', sans-serif;
+            background-color: var(--white);
+            color: var(--dark);
+            scroll-behavior: smooth;
+            overflow-x: hidden;
+            user-select: none;
+        }
+
+        nav {
+            position: fixed; top: 0; width: 100%;
+            padding: 30px 5%; display: flex;
+            justify-content: space-between; align-items: center;
+            z-index: 100; background: rgba(255, 255, 255, 0.8);
+            backdrop-filter: blur(10px);
+            transition: all 0.3s ease;
+        }
+
+        .logo { font-weight: 900; letter-spacing: 2px; font-size: 1.2rem; cursor: pointer; }
+        .logo span { color: var(--primary-red); }
+
+        .nav-links {
+            display: flex;
+            align-items: center;
+        }
+
+        .nav-links a {
+            margin-left: 30px; text-decoration: none;
+            color: var(--dark); font-size: 0.9rem; font-weight: 700;
+            text-transform: uppercase; transition: color 0.3s;
+        }
+
+        .nav-links a:hover { color: var(--primary-red); }
+
+        #hero {
+            height: 100vh; position: relative;
+            overflow: hidden; display: flex;
+            align-items: center; justify-content: center;
+            background: white;
+            cursor: crosshair;
+        }
+
+        #chaosCanvas {
+            position: absolute; top: 0; left: 0;
+            width: 100%; height: 100%; z-index: 1;
+        }
+
+        .hero-content {
+            position: relative; z-index: 10;
+            text-align: center; pointer-events: none;
+        }
+
+        .hero-text-block {
+            /* Weiße Box entfernt (Hintergrund, Border, Shadow, Blur) */
+            padding: 40px;
+            max-width: 750px;
+            margin: 0 auto 35px;
+            pointer-events: auto;
+        }
+
+        .hero-text-block p {
+            font-size: clamp(1.1rem, 2vw, 1.4rem);
+            color: var(--dark);
+            line-height: 1.7;
+            margin: 0;
+            font-weight: 700; /* Text auf fett gesetzt */
+        }
+
+        .hero-text-block strong {
+            font-weight: 900;
+            color: var(--primary-red);
+            display: block;
+            margin-top: 15px;
+            font-size: clamp(1.4rem, 2.5vw, 1.8rem);
+            letter-spacing: -0.5px;
+        }
+
+        .instruction-tag {
+            margin-top: 30px; display: inline-block;
+            padding: 12px 30px; background: var(--primary-red);
+            color: white; font-weight: 700; border-radius: 50px;
+            pointer-events: auto; cursor: pointer;
+            text-decoration: none;
+            transition: transform 0.3s, box-shadow 0.3s;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+            100% { transform: scale(1); }
+        }
+
+        section { padding: 120px 10%; position: relative; background: white; z-index: 20; }
+        .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 80px; align-items: center; }
+        
+        .image-container { 
+            width: 100%; 
+            aspect-ratio: 4/5; 
+            background: #eee; 
+            overflow: hidden; 
+            border-radius: 8px; 
+            position: relative; 
+            box-shadow: 0 30px 60px rgba(0,0,0,0.1); 
+        }
+
+        .image-container img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            display: block;
+        }
+
+        h2 { font-size: clamp(2rem, 5vw, 3.5rem); font-weight: 900; margin-bottom: 25px; line-height: 1.1; }
+        p { font-size: 1.2rem; color: var(--gray); line-height: 1.8; }
+        
+        .service-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 30px; margin-top: 60px; }
+        .service-card { padding: 50px 40px; border: 1px solid #eee; transition: all 0.4s ease; background: white; }
+        .service-card:hover { border-color: var(--primary-red); transform: translateY(-10px); box-shadow: 0 20px 40px rgba(0,0,0,0.05); }
+        
+        .red-line { width: 80px; height: 6px; background: var(--primary-red); margin-bottom: 30px; }
+        footer { padding: 80px 10%; background: var(--dark); color: white; text-align: center; }
+        
+        #success-message { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(255,255,255,0.98); z-index: 200; display: none; align-items: center; justify-content: center; text-align: center; }
+
+        /* Mobile Optimierungen */
+        @media (max-width: 900px) { 
+            nav {
+                flex-direction: column;
+                padding: 15px 5%;
+                gap: 15px;
+            }
+            .nav-links a {
+                margin: 0 10px;
+                font-size: 0.8rem;
+            }
+            .grid, .service-grid { 
+                grid-template-columns: 1fr; 
+                gap: 40px;
+            } 
+            .hero-text-block {
+                margin: 0 20px 25px;
+                padding: 25px 20px;
+            }
+            section { 
+                padding: 80px 5%; 
+            } 
+        }
+    </style>
+</head>
+<body>
+
+    <div id="success-message">
+        <div style="padding: 0 5%;">
+            <h2 style="color: var(--primary-red); font-size: clamp(3rem, 10vw, 4rem);">KLARHEIT.</h2>
+            <p style="max-width: 600px; margin: 0 auto 30px;">Wir haben das Chaos entwirrt. Ihr roter Faden ist nun die Basis für alles Kommende.</p>
+            <button onclick="closeSuccess()" style="padding: 20px 50px; background: var(--dark); color: white; border: none; cursor: pointer; font-weight: 700; letter-spacing: 2px;">AGENTUR ENTDECKEN</button>
+        </div>
+    </div>
+
+    <nav>
+        <div class="logo" onclick="window.scrollTo(0,0)">ROT<span>FADEN</span></div>
+        <div class="nav-links">
+            <a href="#about">Über uns</a>
+            <a href="#services">Expertise</a>
+            <a href="mailto:hallo@rotfaden.de">Kontakt</a>
+        </div>
+    </nav>
+
+    <section id="hero">
+        <canvas id="chaosCanvas"></canvas>
+        <div class="hero-content">
+            <div class="hero-text-block">
+                <p>
+                    Wir verknüpfen Ihre Inhalte strategisch zu dem roten Faden, dessen Botschaft überzeugt.<br>
+                </p>
+            </div>
+           
+    </section>
+
+    <section id="about">
+        <div class="grid">
+            <div class="image-container">
+                <img src="https://images.unsplash.com/photo-1600880292203-757bb62b4baf?q=80&w=2000&auto=format&fit=crop" alt="Visionäre Frau">
+            </div>
+            <div>
+                <div class="red-line"></div>
+                <h2>Die Kunst der Klarheit.</h2>
+                <p>Informationen sind heute überall. Aber Kommunikation? Kommunikation ist selten geworden. Wir bei ROTFADEN entwirren das digitale Grundrauschen und finden die eine Botschaft, die wirklich zählt.</p>
+                <p>Unsere Werkzeuge sind Strategie, Psychologie und exzellentes Design. Wir stricken aus Ihren Werten ein Leitzkonzept, das trägt.</p>
+            </div>
+        </div>
+    </section>
+
+    <section id="services" style="background: var(--light);">
+        <div style="text-align: center; max-width: 800px; margin: 0 auto 40px;">
+            <h2>Unsere Werkzeuge</h2>
+            <p>Wir nutzen kreative Intuition und datengestützte Strategie, um Botschaften Form zu verleihen.</p>
+        </div>
+        <div class="service-grid">
+            <div class="service-card">
+                <div class="red-line" style="width: 30px; height: 3px;"></div>
+                <h3>Brand Identity</h3>
+                <p>Ein visuelles System, das mitwächst. Wir entwickeln Logos und Design-Sprachen, die Identität stiften.</p>
+            </div>
+            <div class="service-card">
+                <div class="red-line" style="width: 30px; height: 3px;"></div>
+                <h3>Digital Strategy</h3>
+                <p>Wo befindet sich Ihr roter Faden im Netz? Wir konzipieren User Experiences, die intuitiv leiten.</p>
+            </div>
+            <div class="service-card">
+                <div class="red-line" style="width: 30px; height: 3px;"></div>
+                <h3>Campaign Design</h3>
+                <p>Botschaften, die ankommen. Wir gestalten Kampagnen, die aus dem Rauschen hervorstechen.</p>
+            </div>
+        </div>
+    </section>
+
+    <footer>
+        <div class="logo" style="color: white; margin-bottom: 20px; font-size: 1.5rem;">ROT<span>FADEN</span></div>
+        <p style="color: #94a3b8; font-size: 0.9rem;">&copy; 2026 ROTFADEN Communications Design Studio.<br>Klarheit ist unsere DNA.</p>
+    </footer>
+
+    <script>
+        const canvas = document.getElementById('chaosCanvas');
+        const ctx = canvas.getContext('2d');
+        let strands = [];
+        
+        // active: Gibt an, ob der User interagiert. time: für die Auto-Animation am Handy.
+        let mouse = { x: null, y: null, pressed: false, active: false };
+        let chaosLevel = 1;
+        let attractionPower = 0;
+        let time = 0; 
+        let cachedWidth = window.innerWidth;
+
+        class WoolStrand {
+            constructor(x, y, fromBorder = false) {
+                this.x = x || Math.random() * canvas.width;
+                this.y = y || Math.random() * canvas.height;
+                
+                if(fromBorder) {
+                    const side = Math.floor(Math.random() * 4);
+                    if(side === 0) { this.x = -20; this.y = Math.random() * canvas.height; }
+                    if(side === 1) { this.x = canvas.width + 20; this.y = Math.random() * canvas.height; }
+                    if(side === 2) { this.x = Math.random() * canvas.width; this.y = -20; }
+                    if(side === 3) { this.x = Math.random() * canvas.width; this.y = canvas.height + 20; }
+                }
+
+                this.length = Math.random() * 40 + 15; 
+                this.color = ['#E63946', '#A8DADC', '#457B9D', '#1D3557', '#F1FAEE', '#ff0000'][Math.floor(Math.random() * 6)];
+                this.size = Math.random() * 1.5 + 0.8; 
+                this.angle = Math.random() * Math.PI * 2;
+                this.curveOffset = (Math.random() - 0.5) * 60;
+                
+                this.vx = (Math.random() - 0.5) * 2;
+                this.vy = (Math.random() - 0.5) * 2;
+                this.friction = 0.96; 
+                this.spin = (Math.random() - 0.5) * 0.03;
+            }
+
+            update() {
+                if (mouse.pressed && mouse.x) {
+                    let dx = mouse.x - this.x;
+                    let dy = mouse.y - this.y;
+                    let dist = Math.sqrt(dx*dx + dy*dy);
+                    let force = attractionPower / (dist + 100);
+                    this.vx += (dx / dist) * force;
+                    this.vy += (dy / dist) * force;
+                }
+
+                this.vx *= this.friction;
+                this.vy *= this.friction;
+                this.x += this.vx * chaosLevel;
+                this.y += this.vy * chaosLevel;
+                this.angle += this.spin * chaosLevel + (this.vx * 0.01);
+
+                if (this.x < -100) this.x = canvas.width + 100;
+                if (this.x > canvas.width + 100) this.x = -100;
+                if (this.y < -100) this.y = canvas.height + 100;
+                if (this.y > canvas.height + 100) this.y = -100;
+            }
+
+            draw() {
+                ctx.beginPath();
+                let endX = this.x + Math.cos(this.angle) * this.length;
+                let endY = this.y + Math.sin(this.angle) * this.length;
+                let cpX = (this.x + endX) / 2 + Math.cos(this.angle + Math.PI/2) * this.curveOffset;
+                let cpY = (this.y + endY) / 2 + Math.sin(this.angle + Math.PI/2) * this.curveOffset;
+
+                ctx.moveTo(this.x, this.y);
+                ctx.quadraticCurveTo(cpX, cpY, endX, endY);
+                ctx.strokeStyle = this.color;
+                ctx.lineWidth = this.size;
+                ctx.lineCap = 'round';
+                ctx.globalAlpha = 0.7; 
+                ctx.stroke();
+
+                if (mouse.x && mouse.active) {
+                    let dx = mouse.x - this.x;
+                    let dy = mouse.y - this.y;
+                    let dist = Math.sqrt(dx*dx + dy*dy);
+                    if (dist < 200) {
+                        ctx.beginPath();
+                        ctx.globalAlpha = (1 - (dist / 200)) * 0.4;
+                        ctx.moveTo(this.x, this.y);
+                        ctx.quadraticCurveTo(this.x + this.curveOffset, this.y - this.curveOffset, mouse.x, mouse.y);
+                        ctx.stroke();
+                    }
+                }
+                ctx.globalAlpha = 1.0;
+            }
+        }
+
+        function initStrands() {
+            strands = [];
+            for (let i = 0; i < 200; i++) strands.push(new WoolStrand());
+        }
+
+        function init() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+            initStrands();
+        }
+
+        // --- Desktop Mouse Events ---
+        window.addEventListener('mousedown', () => { 
+            mouse.pressed = true;
+            for(let i=0; i<15; i++) strands.push(new WoolStrand(null, null, true));
+        });
+        window.addEventListener('mouseup', () => { 
+            mouse.pressed = false; 
+            attractionPower = 0; 
+        });
+        window.addEventListener('mousemove', e => { 
+            mouse.active = true;
+            mouse.x = e.clientX; 
+            mouse.y = e.clientY; 
+        });
+        window.addEventListener('mouseleave', () => { 
+            mouse.active = false; 
+        });
+
+        // --- Mobile Touch Events ---
+        window.addEventListener('touchstart', e => {
+            mouse.active = true;
+            mouse.pressed = true;
+            mouse.x = e.touches[0].clientX;
+            mouse.y = e.touches[0].clientY;
+            // Weniger Fäden generieren bei Touch, um Performance zu schonen
+            for(let i=0; i<5; i++) strands.push(new WoolStrand(null, null, true));
+        }, {passive: true});
+
+        window.addEventListener('touchmove', e => {
+            mouse.active = true;
+            mouse.x = e.touches[0].clientX;
+            mouse.y = e.touches[0].clientY;
+        }, {passive: true});
+
+        window.addEventListener('touchend', () => {
+            mouse.pressed = false;
+            attractionPower = 0;
+            mouse.active = false; // Zurück zum organischen Schweben
+        });
+
+        // Verhindert Flackern durch Mobile-Scrollbars
+        window.addEventListener('resize', () => {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+            // Neu-Generierung nur, wenn sich die Breite ändert (z.B. Bildschirm drehen)
+            if (window.innerWidth !== cachedWidth) {
+                cachedWidth = window.innerWidth;
+                initStrands();
+            }
+        });
+
+        function baendigen() {
+            chaosLevel = 0.05;
+            document.getElementById('success-message').style.display = 'flex';
+        }
+
+        function closeSuccess() {
+            document.getElementById('success-message').style.display = 'none';
+            window.scrollTo({ top: window.innerHeight, behavior: 'smooth' });
+            setTimeout(() => { chaosLevel = 0.4; }, 1000);
+        }
+
+        function animate() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            // Wenn der User keine Eingabe macht (besonders wichtig für Mobile), 
+            // bewegt sich der rote Faden organisch von selbst.
+            if(!mouse.active) {
+                time += 0.015;
+                mouse.x = canvas.width * 0.5 + Math.sin(time) * canvas.width * 0.3;
+                mouse.y = canvas.height * 0.4 + Math.cos(time * 0.7) * canvas.height * 0.2;
+            }
+
+            if(mouse.pressed) {
+                attractionPower = Math.min(attractionPower + 0.15, 5);
+            }
+
+            strands.forEach(p => {
+                p.update();
+                p.draw();
+            });
+
+            // Zeichnet den dicken roten Faden IMMER, entweder der Maus folgend 
+            // oder als fließende Auto-Animation.
+            if(mouse.x !== null) {
+                ctx.beginPath();
+                ctx.strokeStyle = '#ff0000';
+                ctx.lineWidth = 4;
+                ctx.moveTo(-50, canvas.height * 0.2);
+                ctx.bezierCurveTo(canvas.width * 0.3, canvas.height * -0.1, mouse.x - 200, mouse.y + 150, mouse.x, mouse.y);
+                ctx.stroke();
+            }
+
+            requestAnimationFrame(animate);
+        }
+
+        init();
+        animate();
+    </script>
+</body>
+</html>
