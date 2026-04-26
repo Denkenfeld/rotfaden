@@ -1,0 +1,662 @@
+<!DOCTYPE html>
+<html lang="de" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Rotfaden Kommunikation | Strategie, KI & Klarheit</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;700;900&display=swap');
+
+        :root {
+            --bg-color: #f8f9fa;
+            --red-thread: #d32f2f;
+            --font-main: 'Outfit', 'Helvetica Neue', Arial, sans-serif;
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: var(--bg-color);
+            font-family: var(--font-main);
+            overflow-x: hidden;
+            /* Subtiler, organischer Farbverlauf im Hintergrund */
+            background: linear-gradient(-45deg, #fdfbfb, #f3f4f6, #eef2f3, #ffffff);
+            background-size: 400% 400%;
+            animation: gradientBG 15s ease infinite;
+            color: #1a1a1a;
+        }
+
+        @keyframes gradientBG {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+
+        /* --- GLASSMORPHISM CLASSES --- */
+        .glass {
+            background: rgba(255, 255, 255, 0.4);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.6);
+            box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.07);
+        }
+
+        .glass-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 15px 40px 0 rgba(31, 38, 135, 0.12);
+        }
+
+        /* --- SCROLL ANIMATIONS --- */
+        .reveal {
+            opacity: 0;
+            transform: translateY(40px);
+            transition: all 0.8s cubic-bezier(0.5, 0, 0, 1);
+        }
+        .reveal.active {
+            opacity: 1;
+            transform: translateY(0);
+        }
+        
+        .reveal-delay-1 { transition-delay: 0.1s; }
+        .reveal-delay-2 { transition-delay: 0.2s; }
+        .reveal-delay-3 { transition-delay: 0.3s; }
+
+        /* Bild-Zoom Effekt beim Scrollen/Hover */
+        .img-organic {
+            transition: transform 1.5s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+        }
+        .overflow-hidden:hover .img-organic {
+            transform: scale(1.05);
+        }
+
+        /* --- DER ROTE FADEN (Scroll Indikator) --- */
+        #scroll-thread {
+            position: fixed;
+            top: 0;
+            left: 20px;
+            width: 3px;
+            background: var(--red-thread);
+            z-index: 100;
+            height: 0%; /* Wird durch JS gesteuert */
+            box-shadow: 0 0 10px rgba(211, 47, 47, 0.5);
+            border-radius: 2px;
+        }
+
+        /* Responsive Anpassung für den Faden */
+        @media (min-width: 768px) {
+            #scroll-thread { left: 40px; }
+        }
+
+        /* --- SPIEL BEREICH STYLES (1:1 aus Vorlage) --- */
+        #game-container {
+            position: relative;
+            width: 100%;
+            height: 350px;
+            cursor: none;
+            border-bottom: 1px solid rgba(255,255,255,0.3);
+            background: transparent;
+            touch-action: none; 
+            overflow: hidden;
+            margin-top: 80px; /* Platz für fixed Navbar */
+        }
+
+        canvas { 
+            display: block; 
+            position: relative;
+            z-index: 5;
+            backface-visibility: hidden;
+        }
+
+        #ui-overlay {
+            position: absolute;
+            top: 15px;
+            left: 20px;
+            pointer-events: none;
+            color: #333;
+            z-index: 10;
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+        }
+
+        .score-box, .phase-box {
+            font-size: 13px;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+            font-weight: 400;
+        }
+
+        .phase-box {
+            color: var(--red-thread);
+            font-weight: 700;
+        }
+
+        #game-message {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            text-align: center;
+            pointer-events: none;
+            z-index: 20;
+            display: none;
+            width: 90%;
+        }
+
+        .milestone-text {
+            color: #1a1a1a;
+            font-size: clamp(1.5rem, 8vw, 4rem);
+            font-weight: 900;
+            text-transform: uppercase;
+            letter-spacing: -1px;
+            text-shadow: 0 5px 20px rgba(255,255,255,0.8);
+            line-height: 1;
+        }
+
+        .float-animation { animation: dropAndFade 3s ease-out forwards; }
+
+        @keyframes dropAndFade {
+            0% { transform: translate(-50%, -150%); opacity: 0; }
+            20% { transform: translate(-50%, -50%); opacity: 1; }
+            80% { transform: translate(-50%, -50%); opacity: 1; }
+            100% { transform: translate(-50%, -50%); opacity: 0; }
+        }
+
+        #win-screen {
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            display: none; flex-direction: column; justify-content: center; align-items: center;
+            z-index: 100; background-color: var(--red-thread); color: white;
+            text-align: center; padding: 20px; animation: fadeIn 0.8s forwards;
+        }
+
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+        .win-title { font-size: clamp(2rem, 8vw, 3.5rem); font-weight: 900; margin-bottom: 10px; line-height: 1.1; letter-spacing: -1px; }
+        .win-subtitle { font-size: 1.1rem; margin-bottom: 30px; font-weight: 300; opacity: 0.9; }
+        .win-btn {
+            background: white; color: var(--red-thread); padding: 16px 40px; border-radius: 30px; font-weight: bold;
+            text-transform: uppercase; letter-spacing: 2px; transition: all 0.3s; pointer-events: auto;
+            text-decoration: none; font-size: 0.8rem; box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        }
+        .win-btn:hover { background: #1a1a1a; color: white; transform: translateY(-3px); box-shadow: 0 8px 25px rgba(0,0,0,0.2); }
+    </style>
+</head>
+<body class="antialiased">
+
+<div id="scroll-thread"></div>
+
+<nav class="fixed top-0 w-full glass z-50 py-4 px-6 md:px-12 flex justify-between items-center transition-all duration-300" id="navbar">
+    <a href="#" class="flex flex-col leading-none z-50">
+        <div style="font-weight: 900; letter-spacing: -1.5px; font-size: 1.6rem; color: #1a1a1a;">
+            ROT<span style="color: var(--red-thread); font-weight: 300;">FADEN</span>
+        </div>
+        <div style="font-size: 0.55rem; letter-spacing: 3px; text-transform: uppercase; font-weight: 700; color: #666; margin-top: 2px;">
+            Kommunikation
+        </div>
+    </a>
+    
+    <div class="hidden md:flex space-x-8 text-xs uppercase tracking-widest font-bold text-gray-800">
+        <a href="#ansatz" class="hover:text-red-600 transition-colors duration-300">Ansatz</a>
+        <a href="#leistungen" class="hover:text-red-600 transition-colors duration-300">Leistungen</a>
+        <a href="#agentur" class="hover:text-red-600 transition-colors duration-300">Agentur</a>
+        <a href="#kontakt" class="hover:text-red-600 transition-colors duration-300">Kontakt</a>
+    </div>
+    
+    <div class="md:hidden flex items-center">
+        <button class="text-gray-800 hover:text-red-600 focus:outline-none">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path></svg>
+        </button>
+    </div>
+</nav>
+
+<header id="home" class="relative w-full flex flex-col justify-center">
+    <div id="game-container">
+        <div id="ui-overlay">
+            <div class="score-box">Punkte: <span id="score">0</span> / 700</div>
+            <div class="phase-box" id="phase-display">Phase 0: Orientierung</div>
+        </div>
+        
+        <div id="game-message">
+            <div class="milestone-text" id="milestone-label">Start!</div>
+        </div>
+
+        <div id="win-screen">
+            <h2 class="win-title">STRATEGIE STEHT.</h2>
+            <p class="win-subtitle">Mensch und Marke perfekt verknüpft.</p>
+            <a href="#kontakt" class="win-btn">Projekt starten</a>
+        </div>
+
+        <canvas id="gameCanvas"></canvas>
+    </div>
+</header>
+
+<section id="ansatz" class="pt-20 pb-24 px-6 md:px-12 max-w-7xl mx-auto relative">
+    <div class="text-center max-w-4xl mx-auto reveal">
+        <h1 class="text-4xl md:text-6xl font-light mb-8 tracking-tight text-gray-900 leading-tight">
+            Wir finden den <span style="color: var(--red-thread); font-weight: 700; position: relative;">roten Faden<svg class="absolute w-full h-3 -bottom-1 left-0 text-red-600 opacity-30" viewBox="0 0 100 10" preserveAspectRatio="none"><path d="M0 5 Q 50 15 100 5" stroke="currentColor" stroke-width="4" fill="transparent"/></svg></span> für Ihre Story.
+        </h1>
+        <p class="text-xl md:text-2xl text-gray-500 font-light leading-relaxed mb-10">
+            In einer lauten Welt braucht es leise Klarheit. Wir entwirren komplexe Themen und weben daraus eine stringente, nachhaltige Strategie für Unternehmen und Marken, die wirklich etwas zu sagen haben.
+        </p>
+    </div>
+
+    <div class="mt-20 grid grid-cols-1 md:grid-cols-2 gap-12 items-center">
+        <div class="rounded-3xl overflow-hidden glass p-2 reveal shadow-lg h-[400px]">
+            <img src="https://images.unsplash.com/photo-1552664730-d307ca884978?ixlib=rb-4.0.3&auto=format&fit=crop&w=1000&q=80" alt="Teamwork und Strategie" class="w-full h-full object-cover rounded-2xl img-organic">
+        </div>
+        <div class="px-4 reveal reveal-delay-1">
+            <h3 class="text-sm font-bold text-red-600 uppercase tracking-widest mb-4">Unser Ansatz</h3>
+            <h2 class="text-3xl font-bold mb-6">Komplexität reduzieren. Bedeutung schaffen.</h2>
+            <p class="text-gray-600 mb-6 leading-relaxed">
+                Egal ob Start-up, Mittelstand oder Konzern: Der Kern erfolgreicher Kommunikation ist Authentizität. Wir arbeiten inhaltsgetrieben und kanalübergreifend. Dabei verbinden wir tiefes Verständnis für Menschen mit den neuesten technologischen Möglichkeiten.
+            </p>
+            <a href="#leistungen" class="inline-flex items-center text-red-600 font-bold hover:text-gray-900 transition-colors">
+                Was wir tun <svg class="w-5 h-5 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3"></path></svg>
+            </a>
+        </div>
+    </div>
+</section>
+
+<section id="leistungen" class="py-24 relative z-10">
+    <div class="max-w-7xl mx-auto px-6 md:px-12">
+        <div class="mb-16 reveal">
+            <h2 class="text-4xl font-bold text-gray-900 mb-4">Kompetenzen verknüpft.</h2>
+            <p class="text-xl text-gray-500 font-light">Ein Netzwerk aus Spezialisten, vereint durch eine Strategie.</p>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            <div class="glass glass-card p-8 rounded-3xl transition-all duration-300 reveal">
+                <div class="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center mb-6 text-red-600">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path></svg>
+                </div>
+                <h3 class="text-xl font-bold mb-3">Markenstrategie</h3>
+                <p class="text-gray-600 text-sm leading-relaxed">Wir definieren den Kern Ihrer Marke und entwickeln Positionierungen, die im Markt Anker werfen und im Kopf bleiben.</p>
+            </div>
+            <div class="glass glass-card p-8 rounded-3xl transition-all duration-300 reveal reveal-delay-1">
+                <div class="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center mb-6 text-red-600">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9"></path></svg>
+                </div>
+                <h3 class="text-xl font-bold mb-3">Nachhaltigkeit (ESG)</h3>
+                <p class="text-gray-600 text-sm leading-relaxed">Greenwashing war gestern. Wir kommunizieren Ihre Nachhaltigkeitsziele transparent, messbar und glaubwürdig.</p>
+            </div>
+            <div class="glass glass-card p-8 rounded-3xl transition-all duration-300 reveal reveal-delay-2">
+                <div class="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center mb-6 text-red-600">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path></svg>
+                </div>
+                <h3 class="text-xl font-bold mb-3">KI & Innovation</h3>
+                <p class="text-gray-600 text-sm leading-relaxed">Wir integrieren Künstliche Intelligenz sinnstiftend in Ihre Kommunikationsprozesse für mehr Effizienz und Kreation.</p>
+            </div>
+            <div class="glass glass-card p-8 rounded-3xl transition-all duration-300 reveal reveal-delay-3">
+                <div class="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center mb-6 text-red-600">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path></svg>
+                </div>
+                <h3 class="text-xl font-bold mb-3">Public Relations</h3>
+                <p class="text-gray-600 text-sm leading-relaxed">Corporate Communications, Pressearbeit und Krisen-PR. Wir platzieren Ihre Themen dort, wo sie Gehör finden.</p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<section id="agentur" class="py-24">
+    <div class="max-w-7xl mx-auto px-6 md:px-12">
+        <div class="glass rounded-[3rem] p-8 md:p-16 relative overflow-hidden reveal">
+            <svg class="absolute top-0 right-0 w-64 h-64 text-red-500 opacity-10 transform translate-x-1/3 -translate-y-1/3" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+                <path fill="currentColor" d="M44.7,-76.4C58.8,-69.2,71.8,-59.1,81.3,-46.3C90.8,-33.5,96.8,-18.1,95.6,-3.2C94.4,11.7,86.1,26.1,75.8,38.2C65.5,50.3,53.2,60.1,39.6,67.3C26,74.5,11.1,79.1,-3.5,85.1C-18.1,91.1,-32.4,98.5,-44.6,93.6C-56.8,88.7,-66.9,71.5,-75.7,55.3C-84.5,39.1,-92.1,23.9,-93.4,8.5C-94.7,-6.9,-89.7,-22.5,-80.4,-34.5C-71.1,-46.5,-57.5,-54.9,-44,-62.4C-30.5,-69.9,-17.1,-76.5,-1.3,-74.3C14.5,-72.1,29,-61.1,44.7,-76.4Z" transform="translate(100 100)" />
+            </svg>
+
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center relative z-10">
+                <div>
+                    <h3 class="text-sm font-bold text-red-600 uppercase tracking-widest mb-4">Inhabergeführt. Aus München.</h3>
+                    <h2 class="text-4xl font-bold mb-6">Für Menschen und Marken, die Haltung zeigen.</h2>
+                    <p class="text-gray-600 mb-6 leading-relaxed">
+                        Als inhabergeführte Agentur im Herzen Münchens glauben wir an kurze Wege, ehrliche Worte und langfristige Partnerschaften. Wir sind kein anonymer Konzern, sondern ein Team aus Überzeugungstätern.
+                    </p>
+                    <p class="text-gray-600 mb-8 leading-relaxed">
+                        Unser großes Netzwerk aus Designern, Developern und Media-Experten ermöglicht es uns, maßgeschneiderte Teams für Ihr Projekt zusammenzustellen – agil, skalierbar und hocheffizient.
+                    </p>
+                    <div class="flex items-center gap-6">
+                        <img src="https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?ixlib=rb-4.0.3&auto=format&fit=crop&w=400&h=400&q=80" alt="Inhaberin" class="w-32 h-32 md:w-40 md:h-40 rounded-full object-cover border-2 border-red-500 shadow-lg">
+                        <div>
+                            <p class="font-bold text-xl">Anna Beispiel</p>
+                            <p class="text-md text-gray-500">Gründerin & Strategin</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="grid grid-cols-2 gap-4 h-[500px]">
+                    <div class="rounded-3xl overflow-hidden glass p-1 mt-12">
+                        <img src="https://images.unsplash.com/photo-1542744173-8e7e53415bb0?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&q=80" alt="Meeting" class="w-full h-full object-cover rounded-[1.3rem] img-organic">
+                    </div>
+                    <div class="rounded-3xl overflow-hidden glass p-1 mb-12">
+                        <img src="https://images.unsplash.com/photo-1517502884422-41eaead166d4?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&q=80" alt="München" class="w-full h-full object-cover rounded-[1.3rem] img-organic">
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<section class="py-20 overflow-hidden">
+    <div class="max-w-[90rem] mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="text-center mb-16 reveal">
+            <h2 class="text-3xl font-bold">Impressionen & Arbeit</h2>
+            <p class="text-gray-500 mt-2">Einblicke in unseren Agenturalltag und unsere Vision.</p>
+        </div>
+        <div class="flex gap-6 justify-center items-center">
+            <div class="w-1/3 rounded-3xl overflow-hidden glass p-2 reveal h-64 md:h-96 transform translate-y-10">
+                <img src="https://images.unsplash.com/photo-1531482615713-2afd69097998?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80" class="w-full h-full object-cover rounded-2xl img-organic" alt="Kreativer Prozess">
+            </div>
+            <div class="w-1/3 rounded-3xl overflow-hidden glass p-2 reveal reveal-delay-1 h-80 md:h-[30rem] z-10 shadow-2xl">
+                <img src="https://images.unsplash.com/photo-1522071820081-009f0129c71c?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80" class="w-full h-full object-cover rounded-2xl img-organic" alt="Team">
+            </div>
+            <div class="w-1/3 rounded-3xl overflow-hidden glass p-2 reveal reveal-delay-2 h-64 md:h-96 transform translate-y-10">
+                <img src="https://images.unsplash.com/photo-1497366216548-37526070297c?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80" class="w-full h-full object-cover rounded-2xl img-organic" alt="Büro München">
+            </div>
+        </div>
+    </div>
+</section>
+
+<section id="kontakt" class="py-32 relative">
+    <div class="max-w-4xl mx-auto px-6 text-center reveal">
+        <div class="glass p-12 md:p-20 rounded-[3rem] shadow-2xl relative overflow-hidden">
+            <div class="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-64 h-64 bg-red-500 rounded-full blur-[100px] opacity-20 pointer-events-none"></div>
+            
+            <h2 class="text-4xl md:text-5xl font-bold mb-6 relative z-10">Bereit, den <span class="text-red-600">Faden</span> aufzunehmen?</h2>
+            <p class="text-xl text-gray-600 mb-10 relative z-10">Lassen Sie uns bei einem Kaffee in München oder virtuell über Ihre Ziele sprechen.</p>
+            <a href="mailto:hallo@rotfaden.de" class="relative z-10 inline-block bg-gray-900 text-white px-10 py-5 rounded-full font-bold uppercase tracking-widest hover:bg-red-600 hover:shadow-lg hover:shadow-red-500/30 transform hover:-translate-y-1 transition-all duration-300">
+                Projekt starten
+            </a>
+        </div>
+    </div>
+</section>
+
+<footer class="bg-white/80 backdrop-blur-md border-t border-gray-200 pt-16 pb-8">
+    <div class="max-w-7xl mx-auto px-6 md:px-12 flex flex-col md:flex-row justify-between items-center md:items-start gap-8">
+        <div>
+            <div style="font-weight: 900; letter-spacing: -1px; font-size: 1.3rem; color: #1a1a1a;">
+                ROT<span style="color: var(--red-thread); font-weight: 300;">FADEN</span>
+            </div>
+            <p class="text-gray-500 text-sm mt-2">Kommunikationsagentur<br>München, Deutschland</p>
+        </div>
+        <div class="flex space-x-12 text-sm text-gray-600">
+            <div class="flex flex-col space-y-2">
+                <a href="#" class="hover:text-red-600 transition">Impressum</a>
+                <a href="#" class="hover:text-red-600 transition">Datenschutz</a>
+            </div>
+            <div class="flex flex-col space-y-2">
+                <a href="#" class="hover:text-red-600 transition">LinkedIn</a>
+                <a href="#" class="hover:text-red-600 transition">Instagram</a>
+            </div>
+        </div>
+    </div>
+    <div class="max-w-7xl mx-auto px-6 md:px-12 mt-12 text-center md:text-left text-xs text-gray-400">
+        &copy; 2026 Rotfaden Kommunikation. Alle Rechte vorbehalten.
+    </div>
+</footer>
+
+<script>
+    /* --- 1. SPIEL LOGIK --- */
+    const canvas = document.getElementById('gameCanvas');
+    const container = document.getElementById('game-container');
+    const ctx = canvas.getContext('2d');
+    const scoreElement = document.getElementById('score');
+    const phaseElement = document.getElementById('phase-display');
+    const messageEl = document.getElementById('game-message');
+    const labelEl = document.getElementById('milestone-label');
+    const winScreen = document.getElementById('win-screen');
+
+    let width, height, score = 0, lastMilestone = 0;
+    let gameActive = true, finalCelebration = false;
+    let mouse = { x: 0, y: 0 };
+    
+    let snake = { segments: [], length: 20, baseWidth: 3, extraWidth: 0, speed: 0.15 };
+    let particles = [], fireworks = [], pops = [];
+    const colors = ['#3498db', '#f1c40f', '#9b59b6', '#2ecc71', '#e67e22', '#e74c3c', '#ffffff'];
+    
+    const phases = [
+        "Phase 1: IST-Analyse",
+        "Phase 2: Struktur",
+        "Phase 3: Zielgruppen",
+        "Phase 4: Kern-Botschaft",
+        "Phase 5: Tonalität",
+        "Phase 6: Kanäle",
+        "Phase 7: Rollout"
+    ];
+
+    function init() {
+        resize();
+        mouse.x = width / 2; mouse.y = height / 2;
+        for (let i = 0; i < snake.length; i++) snake.segments.push({ x: mouse.x, y: mouse.y });
+        for (let i = 0; i < 55; i++) spawnParticle(i % 8 === 0);
+        animate();
+    }
+
+    function resize() {
+        width = container.clientWidth;
+        height = 350;
+        canvas.width = width;
+        canvas.height = height;
+    }
+
+    function spawnParticle(isRed = false) {
+        particles.push({
+            x: Math.random() * width, y: Math.random() * height,
+            vx: (Math.random() - 0.5) * 1.5, vy: (Math.random() - 0.5) * 1.5,
+            size: isRed ? 9 : 4,
+            color: isRed ? '#d32f2f' : colors[Math.floor(Math.random() * colors.length)],
+            isRed: isRed
+        });
+    }
+
+    function createPop(x, y, color) {
+        for(let i=0; i<8; i++) {
+            pops.push({ x, y, vx: (Math.random()-0.5)*4, vy: (Math.random()-0.5)*4, life: 1.0, size: Math.random()*3+1, color });
+        }
+    }
+
+    function createHugeExplosion() {
+        const x = Math.random() * width;
+        const y = Math.random() * height;
+        const color = colors[Math.floor(Math.random() * colors.length)];
+        const count = finalCelebration ? 75 : 15;
+        
+        for(let i=0; i < count; i++) {
+            fireworks.push({
+                x, y, 
+                vx: (Math.random() - 0.5) * (finalCelebration ? 25 : 10), 
+                vy: (Math.random() - 0.5) * (finalCelebration ? 25 : 10), 
+                gravity: finalCelebration ? 0.12 : 0,
+                life: 1.0, decay: finalCelebration ? 0.008 : 0.02,
+                size: finalCelebration ? (Math.random() * 15 + 5) : 3, 
+                color, angle: Math.random() * Math.PI * 2, spin: (Math.random() - 0.5) * 0.2
+            });
+        }
+    }
+
+    function checkMilestones() {
+        let m = Math.floor(score / 100);
+        if (m > lastMilestone && score < 700) {
+            lastMilestone = m;
+            let txt = phases[m - 1];
+            phaseElement.innerText = txt;
+            labelEl.innerText = txt.split(": ")[1]; 
+            messageEl.style.display = "block";
+            messageEl.classList.remove("float-animation");
+            void messageEl.offsetWidth;
+            messageEl.classList.add("float-animation");
+            createHugeExplosion();
+        }
+        if (score >= 700 && gameActive) startFinal();
+    }
+
+    function startFinal() {
+        gameActive = false; finalCelebration = true;
+        phaseElement.innerText = "Phase 8: Finale!";
+        labelEl.innerText = "BOTSCHAFT GEWEBT!";
+        messageEl.style.display = "block";
+        messageEl.classList.add("float-animation");
+
+        let start = Date.now();
+        const loop = setInterval(() => {
+            let elapsed = Date.now() - start;
+            const explosionsPerTick = Math.floor(elapsed / 700) + 1;
+            for(let i=0; i < explosionsPerTick; i++) createHugeExplosion();
+            
+            if (elapsed > 3800) { clearInterval(loop); winScreen.style.display = 'flex'; }
+        }, 140);
+    }
+
+    container.addEventListener('mousemove', (e) => {
+        const r = canvas.getBoundingClientRect();
+        mouse.x = e.clientX - r.left; mouse.y = e.clientY - r.top;
+    });
+
+    container.addEventListener('touchstart', (e) => {
+        const r = canvas.getBoundingClientRect();
+        mouse.x = e.touches[0].clientX - r.left;
+        mouse.y = e.touches[0].clientY - r.top - 40;
+        if(e.cancelable) e.preventDefault();
+    }, { passive: false });
+
+    container.addEventListener('touchmove', (e) => {
+        const r = canvas.getBoundingClientRect();
+        mouse.x = e.touches[0].clientX - r.left;
+        mouse.y = e.touches[0].clientY - r.top - 40;
+        if(e.cancelable) e.preventDefault();
+    }, { passive: false });
+
+    function update() {
+        let h = { ...snake.segments[0] };
+        h.x += (mouse.x - h.x) * snake.speed;
+        h.y += (mouse.y - h.y) * snake.speed;
+        snake.segments.unshift(h);
+        while (snake.segments.length > snake.length) snake.segments.pop();
+
+        if (gameActive) {
+            if(particles.length < 50) spawnParticle(Math.random() < 0.15);
+            let level = Math.floor(score / 100);
+            let redNeeded = 2 + level; 
+            if (particles.filter(p => p.isRed).length < redNeeded) spawnParticle(true);
+
+            for (let i = particles.length - 1; i >= 0; i--) {
+                let p = particles[i];
+                p.x += p.vx; p.y += p.vy;
+                if (p.x < 0 || p.x > width) p.vx *= -1;
+                if (p.y < 0 || p.y > height) p.vy *= -1;
+                
+                if (Math.hypot(h.x - p.x, h.y - p.y) < 15) {
+                    createPop(p.x, p.y, p.color);
+                    score += p.isRed ? 10 : 1;
+                    snake.length += p.isRed ? 10 : 2;
+                    if(p.isRed) snake.extraWidth += 0.5;
+                    scoreElement.innerText = score;
+                    particles.splice(i, 1);
+                    checkMilestones();
+                }
+            }
+        } else { particles.forEach(p => { p.x += p.vx; p.y += p.vy; }); }
+
+        for (let i = fireworks.length - 1; i >= 0; i--) {
+            let f = fireworks[i];
+            f.x += f.vx; f.y += f.vy; 
+            if(f.gravity) f.vy += f.gravity;
+            if(f.spin) f.angle += f.spin;
+            f.life -= f.decay;
+            if (f.life <= 0) fireworks.splice(i, 1);
+        }
+        for (let i = pops.length - 1; i >= 0; i--) {
+            pops[i].x += pops[i].vx; pops[i].y += pops[i].vy; pops[i].life -= 0.05;
+            if (pops[i].life <= 0) pops.splice(i, 1);
+        }
+    }
+
+    function draw() {
+        ctx.clearRect(0, 0, width, height);
+        
+        pops.forEach(p => {
+            ctx.globalAlpha = Math.max(0, p.life); ctx.fillStyle = p.color;
+            ctx.beginPath(); ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2); ctx.fill();
+        });
+
+        ctx.globalAlpha = 1.0;
+        particles.forEach(p => {
+            ctx.beginPath(); ctx.strokeStyle = p.color; ctx.lineWidth = 2;
+            ctx.arc(p.x, p.y, p.size / 2, 0, Math.PI * 2); ctx.stroke();
+            ctx.beginPath(); ctx.fillStyle = 'rgba(255,255,255,0.8)';
+            ctx.arc(p.x, p.y, 1, 0, Math.PI * 2); ctx.fill();
+        });
+
+        fireworks.forEach(f => {
+            ctx.globalAlpha = Math.max(0, f.life); ctx.fillStyle = f.color;
+            ctx.save(); ctx.translate(f.x, f.y); ctx.rotate(f.angle || 0);
+            if (finalCelebration) {
+                ctx.fillRect(-f.size/2, -f.size/4, f.size, f.size/2); 
+            } else {
+                ctx.fillRect(0, 0, f.size, f.size);
+            }
+            ctx.restore();
+        });
+
+        ctx.globalAlpha = 1.0;
+        if (snake.segments.length > 1) {
+            ctx.beginPath(); ctx.strokeStyle = '#d32f2f';
+            ctx.lineWidth = snake.baseWidth + Math.min(snake.extraWidth, 8);
+            ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+            ctx.moveTo(snake.segments[0].x, snake.segments[0].y);
+            for (let i = 1; i < snake.segments.length; i++) ctx.lineTo(snake.segments[i].x, snake.segments[i].y);
+            ctx.stroke();
+
+            ctx.beginPath(); ctx.strokeStyle = 'rgba(255,255,255,0.3)';
+            ctx.lineWidth = (snake.baseWidth + Math.min(snake.extraWidth, 8)) / 3;
+            ctx.moveTo(snake.segments[0].x, snake.segments[0].y);
+            for (let i = 1; i < snake.segments.length; i++) ctx.lineTo(snake.segments[i].x, snake.segments[i].y);
+            ctx.stroke();
+        }
+    }
+
+    function animate() { update(); draw(); requestAnimationFrame(animate); }
+    window.addEventListener('resize', resize);
+    init();
+
+    /* --- 2. UI / SCROLL EFFEKTE --- */
+    
+    // Navbar Blur Effekt beim Scrollen
+    const navbar = document.getElementById('navbar');
+    window.addEventListener('scroll', () => {
+        if (window.scrollY > 50) {
+            navbar.classList.add('shadow-md');
+        } else {
+            navbar.classList.remove('shadow-md');
+        }
+    });
+
+    // "Roter Faden" Scroll-Indikator
+    const scrollThread = document.getElementById('scroll-thread');
+    window.addEventListener('scroll', () => {
+        const scrollTop = document.documentElement.scrollTop;
+        const scrollHeight = document.documentElement.scrollHeight - document.documentElement.clientHeight;
+        const scrollPercentage = (scrollTop / scrollHeight) * 100;
+        scrollThread.style.height = scrollPercentage + '%';
+    });
+
+    // Fade-In Reveal Animationen beim Runterscrollen
+    function reveal() {
+        var reveals = document.querySelectorAll(".reveal");
+        for (var i = 0; i < reveals.length; i++) {
+            var windowHeight = window.innerHeight;
+            var elementTop = reveals[i].getBoundingClientRect().top;
+            var elementVisible = 100;
+
+            if (elementTop < windowHeight - elementVisible) {
+                reveals[i].classList.add("active");
+            }
+        }
+    }
+
+    window.addEventListener("scroll", reveal);
+    reveal(); // Initial call
+
+</script>
+</body>
+</html>
