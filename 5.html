@@ -1,0 +1,376 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Rotfaden Kommunikation | Strategie & Klarheit</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        :root {
+            --bg-color: #f4f4f4;
+            --red-thread: #d32f2f;
+            --font-main: 'Helvetica Neue', Arial, sans-serif;
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: var(--bg-color);
+            font-family: var(--font-main);
+            overflow-x: hidden;
+        }
+
+        #game-container {
+            position: relative;
+            width: 100%;
+            height: 350px;
+            cursor: none;
+            border-bottom: 1px solid #ddd;
+            background-color: var(--bg-color);
+            touch-action: none; 
+            overflow: hidden;
+        }
+
+        canvas { display: block; }
+
+        #ui-overlay {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            pointer-events: none;
+            color: #333;
+            z-index: 10;
+        }
+
+        .score-box {
+            font-size: 14px;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+            font-weight: 300;
+        }
+
+        #game-message {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            text-align: center;
+            pointer-events: none;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+            z-index: 20;
+        }
+
+        .milestone-text {
+            color: var(--red-thread);
+            font-size: 2.5rem;
+            font-weight: 900;
+            text-transform: uppercase;
+            background: rgba(244, 244, 244, 0.9);
+            padding: 10px 30px;
+            border-radius: 4px;
+            letter-spacing: -1px;
+        }
+
+        /* Win Screen - Jetzt optimiert für Mobile */
+        #win-screen {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: none;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 100;
+            background-color: var(--red-thread);
+            color: white;
+            text-align: center;
+            padding: 30px;
+            animation: fadeIn 1s forwards;
+        }
+
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+        .win-title { 
+            font-size: clamp(2rem, 8vw, 4rem); /* Dynamische Größe für Mobile */
+            font-weight: 900; 
+            margin-bottom: 10px; 
+            line-height: 1.1; 
+            letter-spacing: -1px; 
+        }
+        
+        .win-subtitle { 
+            font-size: clamp(1rem, 4vw, 1.5rem); 
+            margin-bottom: 30px; 
+            font-weight: 300; 
+        }
+        
+        .win-btn {
+            background: white;
+            color: var(--red-thread);
+            padding: 18px 45px;
+            border-radius: 0;
+            font-weight: bold;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            transition: all 0.3s;
+            pointer-events: auto;
+            text-decoration: none;
+            font-size: 0.8rem;
+        }
+        .win-btn:hover { background: #333; color: white; transform: translateY(-3px); }
+    </style>
+</head>
+<body>
+
+<nav class="bg-white py-6 px-10 flex justify-between items-center shadow-sm">
+    <div style="font-weight: 700; letter-spacing: -1px; font-size: 1.5rem;">
+        ROTFADEN <span style="color: var(--red-thread);">KOMMUNIKATION</span>
+    </div>
+    <div class="hidden md:flex space-x-10 text-xs uppercase tracking-widest font-bold">
+        <a href="#" class="hover:text-red-600 transition">Leistungen</a>
+        <a href="#" class="hover:text-red-600 transition">Agentur</a>
+        <a href="#" class="hover:text-red-600 transition">Kontakt</a>
+    </div>
+</nav>
+
+<div id="game-container">
+    <div id="ui-overlay">
+        <div class="score-box">Strategiepunkte: <span id="score">0</span> / 1000</div>
+    </div>
+    
+    <div id="game-message">
+        <div class="milestone-text" id="milestone-label">PR-Power!</div>
+    </div>
+
+    <div id="win-screen">
+        <h2 class="win-title">BOTSCHAFT ANGEKOMMEN.</h2>
+        <p class="win-subtitle">Mensch und Marke perfekt verknüpft.</p>
+        <a href="mailto:hallo@rotfaden.de" class="win-btn">Den roten Faden aufnehmen</a>
+    </div>
+
+    <canvas id="gameCanvas"></canvas>
+</div>
+
+<main class="bg-white">
+    <section class="content-section p-20 text-center">
+        <h1 class="text-4xl md:text-5xl font-light mb-10 tracking-tight">
+            Wir finden den <span style="color: var(--red-thread); font-weight: bold;">roten Faden</span> in Ihrer Story.
+        </h1>
+        <p class="text-xl text-gray-500 leading-relaxed max-w-2xl mx-auto">
+            Kommunikation ist Handarbeit. Wir entwirren komplexe Themen und weben daraus eine klare Strategie für Ihr Unternehmen.
+        </p>
+    </section>
+</main>
+
+<footer class="footer-line p-10 text-center border-t text-gray-400 text-xs uppercase tracking-widest">
+    &copy; 2026 Rotfaden Kommunikation &bull; Hechingen &bull; Deutschland
+</footer>
+
+<script>
+    const canvas = document.getElementById('gameCanvas');
+    const container = document.getElementById('game-container');
+    const ctx = canvas.getContext('2d');
+    const scoreElement = document.getElementById('score');
+    const messageEl = document.getElementById('game-message');
+    const labelEl = document.getElementById('milestone-label');
+    const winScreen = document.getElementById('win-screen');
+
+    let width, height, animationId;
+    let score = 0;
+    let lastMilestone = 0;
+    let gameActive = true;
+    let mouse = { x: 0, y: 0 };
+    
+    let snake = { segments: [], length: 20, baseWidth: 3, extraWidth: 0, speed: 0.15 };
+    let particles = [];
+    let fireworks = [];
+    const colors = ['#3498db', '#f1c40f', '#9b59b6', '#2ecc71', '#e67e22'];
+    
+    const milestoneWords = [
+        "Faden-Fokus!", "Garn-Geniestreich!", "Struktur-Sieg!", "Kern-Konzept!", 
+        "Web-Wunder!", "Dialog-Design!", "Marken-Magie!", "Botschafts-Brillanz!", "Strategie-Star!"
+    ];
+
+    function init() {
+        resize();
+        mouse.x = width / 2; mouse.y = height / 2;
+        for (let i = 0; i < snake.length; i++) snake.segments.push({ x: mouse.x, y: mouse.y });
+        for (let i = 0; i < 44; i++) spawnParticle(false);
+        animate();
+    }
+
+    function resize() {
+        width = window.innerWidth;
+        height = 350;
+        canvas.width = width;
+        canvas.height = height;
+    }
+
+    function spawnParticle(isRed = false) {
+        particles.push({
+            x: Math.random() * width,
+            y: Math.random() * height,
+            vx: (Math.random() - 0.5) * 1.5,
+            vy: (Math.random() - 0.5) * 1.5,
+            size: isRed ? 8 : 4,
+            color: isRed ? '#d32f2f' : colors[Math.floor(Math.random() * colors.length)],
+            isRed: isRed
+        });
+    }
+
+    function createFirework(x, y) {
+        for(let i=0; i<15; i++) {
+            fireworks.push({
+                x: x, y: y,
+                vx: (Math.random() - 0.5) * 8,
+                vy: (Math.random() - 0.5) * 8,
+                life: 1.0,
+                color: colors[Math.floor(Math.random() * colors.length)]
+            });
+        }
+    }
+
+    function checkMilestones() {
+        let currentMilestone = Math.floor(score / 100);
+        if (currentMilestone > lastMilestone && score < 1000) {
+            lastMilestone = currentMilestone;
+            showMilestone(milestoneWords[currentMilestone - 1] || "Strategie+");
+            createFirework(snake.segments[0].x, snake.segments[0].y);
+        }
+        if (score >= 1000 && gameActive) {
+            gameActive = false;
+            winScreen.style.display = 'flex';
+            setInterval(() => createFirework(Math.random()*width, Math.random()*height), 200);
+        }
+    }
+
+    function showMilestone(text) {
+        labelEl.innerText = text;
+        messageEl.style.opacity = "1";
+        setTimeout(() => { messageEl.style.opacity = "0"; }, 1500);
+    }
+
+    window.addEventListener('mousemove', (e) => {
+        const rect = canvas.getBoundingClientRect();
+        mouse.x = e.clientX - rect.left;
+        mouse.y = e.clientY - rect.top;
+    });
+
+    container.addEventListener('touchstart', handleTouch, { passive: false });
+    container.addEventListener('touchmove', handleTouch, { passive: false });
+
+    function handleTouch(e) {
+        const rect = canvas.getBoundingClientRect();
+        const touch = e.touches[0];
+        mouse.x = touch.clientX - rect.left;
+        mouse.y = (touch.clientY - rect.top) - 40; 
+        if(e.cancelable) e.preventDefault();
+    }
+
+    function update() {
+        if (!gameActive) return;
+
+        let head = { ...snake.segments[0] };
+        head.x += (mouse.x - head.x) * snake.speed;
+        head.y += (mouse.y - head.y) * snake.speed;
+        snake.segments.unshift(head);
+        while (snake.segments.length > snake.length) snake.segments.pop();
+
+        particles.forEach((p, i) => {
+            p.x += p.vx; p.y += p.vy;
+            if (p.x < 0 || p.x > width) p.vx *= -1;
+            if (p.y < 0 || p.y > height) p.vy *= -1;
+
+            const dx = head.x - p.x;
+            const dy = head.y - p.y;
+            if (Math.sqrt(dx*dx + dy*dy) < 15) {
+                if (p.isRed) {
+                    score += 10; snake.length += 10; snake.extraWidth += 0.5;
+                } else {
+                    score += 1; snake.length += 2;
+                }
+                scoreElement.innerText = score;
+                particles.splice(i, 1);
+                spawnParticle(Math.random() < 0.1);
+                checkMilestones();
+            }
+        });
+
+        fireworks.forEach((f, i) => {
+            f.x += f.vx; f.y += f.vy; f.life -= 0.02;
+            if (f.life <= 0) fireworks.splice(i, 1);
+        });
+
+        // Erhöht die Anzahl roter Punkte um 10% pro 100 Punkte (Level)
+        let level = Math.floor(score / 100);
+        let redSpawnProb = 0.02 + (level * 0.002); // 10% Steigerung der Wahrscheinlichkeit pro Level
+        
+        if (particles.filter(p => p.isRed).length === 0 || Math.random() < redSpawnProb) {
+            // Begrenzung, damit nicht zu viele rote Punkte gleichzeitig da sind
+            if (particles.filter(p => p.isRed).length < (1 + level)) {
+                spawnParticle(true);
+            }
+        }
+    }
+
+    function draw() {
+        ctx.clearRect(0, 0, width, height);
+
+        particles.forEach(p => {
+            ctx.beginPath();
+            ctx.strokeStyle = p.color;
+            ctx.lineWidth = 2;
+            ctx.arc(p.x, p.y, p.size / 2, 0, Math.PI * 2);
+            ctx.stroke();
+            
+            ctx.beginPath();
+            ctx.fillStyle = 'rgba(255,255,255,0.8)';
+            ctx.arc(p.x, p.y, 1, 0, Math.PI * 2);
+            ctx.fill();
+        });
+
+        fireworks.forEach(f => {
+            ctx.globalAlpha = f.life;
+            ctx.fillStyle = f.color;
+            ctx.fillRect(f.x, f.y, 2, 2);
+        });
+        ctx.globalAlpha = 1;
+
+        if (snake.segments.length > 1) {
+            ctx.beginPath();
+            ctx.strokeStyle = '#d32f2f';
+            ctx.lineWidth = snake.baseWidth + Math.min(snake.extraWidth, 8);
+            ctx.lineCap = 'round';
+            ctx.lineJoin = 'round';
+            ctx.moveTo(snake.segments[0].x, snake.segments[0].y);
+            for (let i = 1; i < snake.segments.length; i++) {
+                ctx.lineTo(snake.segments[i].x, snake.segments[i].y);
+            }
+            ctx.stroke();
+
+            ctx.beginPath();
+            ctx.strokeStyle = 'rgba(255,255,255,0.3)';
+            ctx.lineWidth = (snake.baseWidth + Math.min(snake.extraWidth, 8)) / 3;
+            ctx.moveTo(snake.segments[0].x, snake.segments[0].y);
+            for (let i = 1; i < snake.segments.length; i++) {
+                ctx.lineTo(snake.segments[i].x, snake.segments[i].y);
+            }
+            ctx.stroke();
+        }
+    }
+
+    function animate() {
+        update();
+        draw();
+        requestAnimationFrame(animate);
+    }
+
+    window.addEventListener('resize', resize);
+    init();
+</script>
+
+</body>
+</html>
