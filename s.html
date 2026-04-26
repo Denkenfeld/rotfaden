@@ -1,0 +1,308 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Rotfaden Kommunikation | Strategie & Klarheit</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* CSS Variablen passend zu deinem Spiel-Code */
+        :root {
+            --bg-color: #f4f4f4;
+            --red-thread: #d32f2f;
+            --font-main: 'Helvetica Neue', Arial, sans-serif;
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: var(--bg-color);
+            font-family: var(--font-main);
+            overflow-x: hidden; /* Verhindert horizontales Scrollen durch das Canvas */
+        }
+
+        /* Dein Original Game-Container Styling */
+        #game-container {
+            position: relative;
+            width: 100%;
+            height: 300px;
+            cursor: none;
+            border-bottom: 1px solid #ddd;
+            background-color: var(--bg-color);
+            touch-action: none; /* Verhindert Scrolling auf Touch-Geräten innerhalb des Spiels */
+        }
+
+        canvas {
+            display: block;
+        }
+
+        #ui-overlay {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            pointer-events: none;
+            color: #333;
+        }
+
+        .score-box {
+            font-size: 14px;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+            font-weight: 300;
+        }
+
+        .instructions {
+            position: absolute;
+            bottom: 20px;
+            right: 20px;
+            font-size: 11px;
+            color: #999;
+            text-transform: uppercase;
+        }
+
+        /* Ergänzendes Styling für die restliche Seite */
+        .content-section {
+            padding: 80px 20px;
+            max-width: 1000px;
+            margin: 0 auto;
+            text-align: center;
+        }
+        .footer-line {
+            border-top: 1px solid #ddd;
+            padding: 40px 20px;
+            font-size: 12px;
+            color: #666;
+            text-align: center;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+    </style>
+</head>
+<body>
+
+<nav class="bg-white py-6 px-10 flex justify-between items-center shadow-sm">
+    <div style="font-weight: 700; letter-spacing: -1px; font-size: 1.5rem;">
+        ROTFADEN <span style="color: var(--red-thread);">KOMMUNIKATION</span>
+    </div>
+    <div class="hidden md:flex space-x-10 text-xs uppercase tracking-widest font-bold">
+        <a href="#" class="hover:text-red-600 transition">Leistungen</a>
+        <a href="#" class="hover:text-red-600 transition">Agentur</a>
+        <a href="#" class="hover:text-red-600 transition">Kontakt</a>
+    </div>
+</nav>
+
+<div id="game-container">
+    <div id="ui-overlay">
+        <div class="score-box">Strategiepunkte: <span id="score">0</span></div>
+    </div>
+    <div class="instructions"></div>
+    <canvas id="gameCanvas"></canvas>
+</div>
+
+<main class="bg-white">
+    <section class="content-section">
+        <h1 class="text-4xl md:text-5xl font-light mb-10 tracking-tight">
+            Wir finden den <span style="color: var(--red-thread); font-weight: bold;">roten Faden</span> in Ihrer Story.
+        </h1>
+        <p class="text-xl text-gray-500 leading-relaxed max-w-2xl mx-auto">
+            Kommunikation ist Handarbeit. Wir entwirren komplexe Themen und weben daraus eine klare Strategie für Ihr Unternehmen.
+        </p>
+    </section>
+
+    <section class="grid md:grid-cols-3 gap-0 border-t border-gray-100">
+        <div class="p-16 border-r border-gray-100 hover:bg-gray-50 transition">
+            <h3 class="font-bold uppercase tracking-widest mb-4">Analyse</h3>
+            <p class="text-gray-500 text-sm">Wo stehen Sie? Wir suchen den Ursprung Ihrer Botschaft.</p>
+        </div>
+        <div class="p-16 border-r border-gray-100 hover:bg-gray-50 transition">
+            <h3 class="font-bold uppercase tracking-widest mb-4">Konzept</h3>
+            <p class="text-gray-500 text-sm">Wir spinnen das Netz – von der ersten Idee bis zum fertigen Plan.</p>
+        </div>
+        <div class="p-16 hover:bg-gray-50 transition">
+            <h3 class="font-bold uppercase tracking-widest mb-4">PR</h3>
+            <p class="text-gray-500 text-sm">Wir sorgen dafür, dass die Welt Ihren roten Faden sieht.</p>
+        </div>
+    </section>
+</main>
+
+<footer class="footer-line bg-white">
+    &copy; 2026 Rotfaden Kommunikation &bull; Hechingen &bull; Deutschland
+</footer>
+
+<script>
+    const canvas = document.getElementById('gameCanvas');
+    const ctx = canvas.getContext('2d');
+    const scoreElement = document.getElementById('score');
+
+    let width, height;
+    let score = 0;
+    let mouse = { x: 0, y: 0 };
+    
+    // Schlange (Roter Faden)
+    let snake = {
+        segments: [],
+        length: 20,
+        baseWidth: 3,
+        extraWidth: 0,
+        speed: 0.15 // Wie schnell sie der Maus folgt
+    };
+
+    // Partikel (Wollreste)
+    let particles = [];
+    const colors = ['#3498db', '#f1c40f', '#9b59b6', '#2ecc71', '#e67e22'];
+
+    function init() {
+        resize();
+        mouse.x = width / 2;
+        mouse.y = height / 2;
+        
+        // Startsegmente
+        for (let i = 0; i < snake.length; i++) {
+            snake.segments.push({ x: mouse.x, y: mouse.y });
+        }
+
+        // Initiale Partikel
+        for (let i = 0; i < 40; i++) {
+            spawnParticle(false);
+        }
+
+        animate();
+    }
+
+    function resize() {
+        width = window.innerWidth;
+        height = 300;
+        canvas.width = width;
+        canvas.height = height;
+    }
+
+    function spawnParticle(isRed = false) {
+        particles.push({
+            x: Math.random() * width,
+            y: Math.random() * height,
+            vx: (Math.random() - 0.5) * 1.5,
+            vy: (Math.random() - 0.5) * 1.5,
+            size: isRed ? 8 : 4,
+            color: isRed ? '#d32f2f' : colors[Math.floor(Math.random() * colors.length)],
+            isRed: isRed,
+            angle: Math.random() * Math.PI * 2
+        });
+    }
+
+    // Desktop Steuerung
+    window.addEventListener('mousemove', (e) => {
+        const rect = canvas.getBoundingClientRect();
+        mouse.x = e.clientX - rect.left;
+        mouse.y = e.clientY - rect.top;
+    });
+
+    // Mobile Steuerung (Wischen/Ziehen)
+    const handleTouch = (e) => {
+        const rect = canvas.getBoundingClientRect();
+        const touch = e.touches[0];
+        mouse.x = touch.clientX - rect.left;
+        mouse.y = touch.clientY - rect.top;
+        if (e.cancelable) e.preventDefault(); // Verhindert Scrollen beim Spielen
+    };
+
+    window.addEventListener('touchstart', handleTouch, { passive: false });
+    window.addEventListener('touchmove', handleTouch, { passive: false });
+
+    window.addEventListener('resize', resize);
+
+    function update() {
+        // Kopf folgt der Maus / dem Touch
+        let head = { ...snake.segments[0] };
+        head.x += (mouse.x - head.x) * snake.speed;
+        head.y += (mouse.y - head.y) * snake.speed;
+
+        snake.segments.unshift(head);
+        while (snake.segments.length > snake.length) {
+            snake.segments.pop();
+        }
+
+        // Partikel bewegen und Kollision prüfen
+        particles.forEach((p, index) => {
+            p.x += p.vx;
+            p.y += p.vy;
+
+            // Soft Bounce an den Rändern
+            if (p.x < 0 || p.x > width) p.vx *= -1;
+            if (p.y < 0 || p.y > height) p.vy *= -1;
+
+            // Kollision mit Kopf
+            const dx = head.x - p.x;
+            const dy = head.y - p.y;
+            const distance = Math.sqrt(dx * dx + dy * dy);
+
+            if (distance < 15) {
+                if (p.isRed) {
+                    score += 10;
+                    snake.length += 10; // Deutlich länger
+                    snake.extraWidth += 0.5; // Breiter
+                } else {
+                    score += 1;
+                    snake.length += 2; // Ein wenig länger
+                }
+                scoreElement.innerText = score;
+                particles.splice(index, 1);
+                spawnParticle(Math.random() < 0.1); // 10% Chance auf neuen roten Faden
+            }
+        });
+
+        // Gelegentlich rote Fäden einstreuen, falls keine da sind
+        if (particles.filter(p => p.isRed).length === 0 && Math.random() < 0.02) {
+            spawnParticle(true);
+        }
+    }
+
+    function draw() {
+        ctx.clearRect(0, 0, width, height);
+
+        // Zeichne Wollreste
+        particles.forEach(p => {
+            ctx.beginPath();
+            ctx.strokeStyle = p.color;
+            ctx.lineWidth = 2;
+            // Kleiner Schnörkel-Effekt für Wolle
+            ctx.arc(p.x, p.y, p.size / 2, 0, Math.PI * 2);
+            ctx.stroke();
+        });
+
+        // Zeichne den roten Faden (Snake)
+        if (snake.segments.length > 1) {
+            ctx.beginPath();
+            ctx.strokeStyle = '#d32f2f';
+            ctx.lineCap = 'round';
+            ctx.lineJoin = 'round';
+            ctx.lineWidth = snake.baseWidth + Math.min(snake.extraWidth, 8);
+
+            ctx.moveTo(snake.segments[0].x, snake.segments[0].y);
+            for (let i = 1; i < snake.segments.length; i++) {
+                ctx.lineTo(snake.segments[i].x, snake.segments[i].y);
+            }
+            ctx.stroke();
+
+            // Kleiner "Glanz"-Effekt auf dem Faden
+            ctx.beginPath();
+            ctx.strokeStyle = 'rgba(255,255,255,0.3)';
+            ctx.lineWidth = (snake.baseWidth + Math.min(snake.extraWidth, 8)) / 3;
+            ctx.moveTo(snake.segments[0].x, snake.segments[0].y);
+            for (let i = 1; i < snake.segments.length; i++) {
+                ctx.lineTo(snake.segments[i].x, snake.segments[i].y);
+            }
+            ctx.stroke();
+        }
+    }
+
+    function animate() {
+        update();
+        draw();
+        requestAnimationFrame(animate);
+    }
+
+    init();
+</script>
+
+</body>
+</html>
