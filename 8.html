@@ -1,0 +1,511 @@
+<!DOCTYPE html>
+<html lang="de" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Rotfaden Kommunikation | Excellence in Strategy & AI</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@200;400;600;800&display=swap');
+
+        :root {
+            --red-thread: #d32f2f;
+            --bg-dark: #0f1115;
+        }
+
+        body {
+            margin: 0;
+            background-color: #ffffff;
+            font-family: 'Outfit', sans-serif;
+            color: #1a1a1a;
+            overflow-x: hidden;
+        }
+
+        /* --- UI & NAVIGATION --- */
+        .glass-nav {
+            background: rgba(255, 255, 255, 0.7);
+            backdrop-filter: saturate(180%) blur(20px);
+            border-bottom: 1px solid rgba(0,0,0,0.05);
+        }
+
+        .hero-title {
+            font-weight: 800;
+            letter-spacing: -0.04em;
+            line-height: 0.95;
+            font-size: clamp(3rem, 10vw, 6.5rem);
+        }
+
+        /* --- GAME / HERO BEREICH --- */
+        #hero-canvas-wrapper {
+            position: relative;
+            width: 100%;
+            height: 90vh;
+            background: radial-gradient(circle at 50% 50%, #fff 0%, #f4f4f7 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+            cursor: none; 
+        }
+
+        canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            z-index: 1;
+            touch-action: none;
+        }
+
+        .hero-content {
+            position: relative;
+            z-index: 10;
+            text-align: center;
+            pointer-events: none; 
+        }
+
+        /* --- SPIEL UI OVERLAYS --- */
+        #ui-overlay {
+            position: absolute;
+            top: 120px;
+            left: 40px;
+            pointer-events: none;
+            z-index: 20;
+            font-size: 10px;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            font-weight: 800;
+        }
+
+        .phase-box { color: var(--red-thread); margin-top: 5px; }
+
+        #game-message {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            text-align: center;
+            pointer-events: none;
+            z-index: 30;
+            display: none;
+        }
+
+        .milestone-text {
+            color: #1a1a1a;
+            font-size: clamp(2rem, 10vw, 5rem);
+            font-weight: 900;
+            text-transform: uppercase;
+            letter-spacing: -2px;
+            line-height: 1;
+            opacity: 0.8;
+        }
+
+        .float-animation { animation: dropAndFade 3s ease-out forwards; }
+
+        @keyframes dropAndFade {
+            0% { transform: translate(-50%, -100%); opacity: 0; }
+            20% { transform: translate(-50%, -50%); opacity: 1; }
+            80% { transform: translate(-50%, -50%); opacity: 1; }
+            100% { transform: translate(-50%, -50%); opacity: 0; }
+        }
+
+        #win-screen {
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            display: none; flex-direction: column; justify-content: center; align-items: center;
+            z-index: 100; background-color: var(--red-thread); color: white;
+            text-align: center; padding: 20px; animation: fadeIn 0.8s forwards;
+        }
+
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+        /* --- SCROLL ANIMATIONEN --- */
+        .reveal {
+            opacity: 0;
+            transform: translateY(40px) scale(0.98);
+            transition: all 1s cubic-bezier(0.2, 0.8, 0.2, 1);
+        }
+        .reveal.active {
+            opacity: 1;
+            transform: translateY(0) scale(1);
+        }
+
+        .thread-indicator {
+            position: fixed;
+            left: 30px;
+            top: 0;
+            width: 2px;
+            height: 0%;
+            background: linear-gradient(to bottom, transparent, var(--red-thread), var(--red-thread));
+            z-index: 100;
+        }
+    </style>
+</head>
+<body>
+
+<div class="thread-indicator" id="scroll-thread"></div>
+
+<nav class="fixed top-0 w-full glass-nav z-50 py-5 px-8 md:px-16 flex justify-between items-center">
+    <div class="flex flex-col">
+        <span class="font-extrabold text-2xl tracking-tighter uppercase italic">Rot<span class="text-red-600 font-light not-italic">faden</span></span>
+        <span class="text-[8px] tracking-[0.4em] uppercase font-bold text-gray-400">Strategic Communications</span>
+    </div>
+    <div class="hidden md:flex items-center space-x-12 text-[10px] font-extrabold uppercase tracking-widest">
+        <a href="#strategy" class="hover:text-red-600 transition-all">Methodik</a>
+        <a href="#expert" class="hover:text-red-600 transition-all">Leistungen</a>
+        <a href="#contact" class="px-6 py-3 border-2 border-black hover:bg-black hover:text-white transition-all">Start Project</a>
+    </div>
+</nav>
+
+<section id="hero-canvas-wrapper">
+    <div id="ui-overlay">
+        <div>Strategiepunkte: <span id="score">0</span> / 700</div>
+        <div class="phase-box" id="phase-display">Phase 0: Orientierung</div>
+    </div>
+
+    <div id="game-message">
+        <div class="milestone-text" id="milestone-label">Start!</div>
+    </div>
+
+    <div id="win-screen">
+        <h2 class="text-6xl font-black italic mb-4">STRATEGIE STEHT.</h2>
+        <p class="text-xl font-light mb-10 opacity-80">Mensch und Marke perfekt verknüpft.</p>
+        <a href="#contact" class="px-10 py-5 bg-white text-red-600 font-bold uppercase tracking-widest rounded-full hover:bg-black hover:text-white transition-all">Projekt starten</a>
+    </div>
+
+    <canvas id="gameCanvas"></canvas>
+
+    <div class="hero-content px-6">
+        <h3 class="text-red-600 uppercase tracking-[0.5em] font-bold text-xs mb-6">Navigating Complexity</h3>
+        <h1 class="hero-title">DEN FADEN<br><span class="text-gray-300">NICHT VERLIEREN.</span></h1>
+    </div>
+</section>
+
+<section id="strategy" class="py-32 px-8 md:px-32 bg-white">
+    <div class="max-w-7xl mx-auto">
+        <div class="reveal">
+            <h2 class="text-6xl font-extrabold tracking-tighter mb-12 italic">Die Methodik.</h2>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-16">
+                <div>
+                    <span class="text-red-600 font-bold">01. Analyse</span>
+                    <p class="mt-4 text-gray-500 leading-relaxed">Wir dekodieren Ihre Marktposition und identifizieren blinde Flecken in der Kommunikation.</p>
+                </div>
+                <div>
+                    <span class="text-red-600 font-bold">02. Synthese</span>
+                    <p class="mt-4 text-gray-500 leading-relaxed">Verknüpfung von Daten und Kreation zu einem belastbaren strategischen Fundament.</p>
+                </div>
+                <div>
+                    <span class="text-red-600 font-bold">03. Impact</span>
+                    <p class="mt-4 text-gray-500 leading-relaxed">Präzise Ausspielung über alle digitalen Touchpoints für messbares Wachstum.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<section class="py-24 bg-gray-50 border-y border-gray-100">
+    <div class="max-w-7xl mx-auto px-8 grid grid-cols-1 md:grid-cols-2 gap-24 items-center">
+        <div class="reveal">
+            <h2 class="text-4xl font-bold mb-6 italic leading-tight">"Technik ohne Strategie ist nur Lärm."</h2>
+            <p class="text-gray-600 mb-8">Inhabergeführte Beratung für Marken, die den nächsten Evolutionsschritt gehen wollen. Wir nutzen den spielerischen Ansatz, um komplexe Wege zu vereinfachen.</p>
+            <a href="#" class="inline-block border-b-2 border-red-600 pb-1 font-bold text-sm hover:text-red-600 transition-all">Mehr erfahren</a>
+        </div>
+        <div class="relative reveal h-[500px]">
+             <img src="https://images.unsplash.com/photo-1497366216548-37526070297c?auto=format&fit=crop&w=800&q=80" class="w-full h-full object-cover grayscale hover:grayscale-0 transition-all duration-700 shadow-2xl rounded-sm" alt="Agency">
+             <div class="absolute -bottom-6 -left-6 bg-red-600 text-white p-10 hidden md:block">
+                 <p class="text-4xl font-black italic">MUC.</p>
+                 <p class="text-[10px] uppercase tracking-widest font-bold opacity-80">Based in Munich</p>
+             </div>
+        </div>
+    </div>
+</section>
+
+<footer id="contact" class="py-24 px-8 text-center bg-white">
+    <div class="reveal">
+        <h2 class="text-7xl font-extrabold tracking-tighter mb-8">READY?</h2>
+        <a href="mailto:office@rotfaden.de" class="text-2xl font-light border-b border-black pb-2 hover:text-red-600 hover:border-red-600 transition-all">office@rotfaden.de</a>
+        <p class="mt-24 text-[10px] uppercase tracking-[0.5em] text-gray-400">&copy; 2026 Rotfaden Kommunikation. Excellence by Design.</p>
+    </div>
+</footer>
+
+<script>
+    const canvas = document.getElementById('gameCanvas');
+    const container = document.getElementById('hero-canvas-wrapper');
+    const ctx = canvas.getContext('2d');
+    const scoreElement = document.getElementById('score');
+    const phaseElement = document.getElementById('phase-display');
+    const messageEl = document.getElementById('game-message');
+    const labelEl = document.getElementById('milestone-label');
+    const winScreen = document.getElementById('win-screen');
+
+    let width, height, score = 0, lastMilestone = 0;
+    let gameActive = true, finalCelebration = false;
+    let mouse = { x: 0, y: 0 };
+    
+    // Spiel-Elemente (2D)
+    let snake = { segments: [], length: 25, baseWidth: 3, speed: 0.15 };
+    let particles = [], fireworks = [], pops = [];
+    const colors = ['#d32f2f', '#1a1a1a', '#cccccc', '#f4f4f7', '#888888'];
+    
+    // NEU: Visuelle 3D-Hintergrund-Fäden
+    let visualLines = [];
+
+    const phases = ["IST-Analyse", "Struktur", "Zielgruppen", "Kern-Botschaft", "Tonalität", "Kanäle", "Rollout"];
+
+    function init() {
+        resize();
+        mouse.x = width / 2; mouse.y = height / 2;
+        for (let i = 0; i < snake.length; i++) snake.segments.push({ x: mouse.x, y: mouse.y });
+        
+        // Initiale Spiel-Partikel (2D)
+        for (let i = 0; i < 30; i++) spawnParticle(i % 5 === 0);
+        
+        // Initiale 3D-Fäden
+        for (let i = 0; i < 50; i++) spawnVisualLine(Math.random() * 2000);
+        
+        animate();
+    }
+
+    function resize() {
+        width = window.innerWidth;
+        height = window.innerHeight * 0.9;
+        canvas.width = width;
+        canvas.height = height;
+    }
+
+    /* --- GAME PARTIKEL (2D) --- */
+    function spawnParticle(isRed = false) {
+        particles.push({
+            x: Math.random() * width, y: Math.random() * height,
+            vx: (Math.random() - 0.5) * 1.2, vy: (Math.random() - 0.5) * 1.2,
+            size: isRed ? 8 : 4,
+            color: isRed ? '#d32f2f' : colors[Math.floor(Math.random() * colors.length)],
+            isRed: isRed
+        });
+    }
+
+    /* --- VISUELLE FÄDEN (3D) --- */
+    function spawnVisualLine(startZ = 2000) {
+        visualLines.push({
+            x: (Math.random() - 0.5) * width * 3, // Weit verteilen
+            y: (Math.random() - 0.5) * height * 3,
+            z: startZ,
+            length: Math.random() * 300 + 100, // Wie lang der Faden aussieht
+            speed: Math.random() * 15 + 10,    // Fluggeschwindigkeit
+            color: Math.random() > 0.8 ? 'rgba(211, 47, 47, 0.15)' : 'rgba(150, 150, 150, 0.15)'
+        });
+    }
+
+    /* --- EFFEKTE --- */
+    function createPop(x, y, color) {
+        for(let i=0; i<6; i++) {
+            pops.push({ x, y, vx: (Math.random()-0.5)*4, vy: (Math.random()-0.5)*4, life: 1.0, size: Math.random()*2+1, color });
+        }
+    }
+
+    function createHugeExplosion() {
+        const x = Math.random() * width;
+        const y = Math.random() * height;
+        const count = finalCelebration ? 60 : 12;
+        for(let i=0; i < count; i++) {
+            fireworks.push({
+                x, y, 
+                vx: (Math.random() - 0.5) * (finalCelebration ? 20 : 8), 
+                vy: (Math.random() - 0.5) * (finalCelebration ? 20 : 8), 
+                gravity: finalCelebration ? 0.1 : 0,
+                life: 1.0, decay: 0.015,
+                size: Math.random() * 8 + 2, 
+                color: colors[Math.floor(Math.random() * colors.length)],
+                angle: Math.random() * Math.PI * 2
+            });
+        }
+    }
+
+    function checkMilestones() {
+        let m = Math.floor(score / 100);
+        if (m > lastMilestone && score < 700) {
+            lastMilestone = m;
+            let txt = phases[m - 1];
+            phaseElement.innerText = "Phase " + m + ": " + txt;
+            labelEl.innerText = txt; 
+            messageEl.style.display = "block";
+            messageEl.classList.remove("float-animation");
+            void messageEl.offsetWidth;
+            messageEl.classList.add("float-animation");
+            createHugeExplosion();
+        }
+        if (score >= 700 && gameActive) startFinal();
+    }
+
+    function startFinal() {
+        gameActive = false; finalCelebration = true;
+        phaseElement.innerText = "STRATEGIE VOLLENDET";
+        labelEl.innerText = "BOTSCHAFT GEWEBT!";
+        messageEl.style.display = "block";
+        messageEl.classList.add("float-animation");
+        setTimeout(() => { winScreen.style.display = 'flex'; }, 3000);
+        setInterval(createHugeExplosion, 200);
+    }
+
+    window.addEventListener('mousemove', (e) => {
+        mouse.x = e.clientX; mouse.y = e.clientY;
+    });
+
+    function update() {
+        // 1. Schlange updaten
+        let h = { ...snake.segments[0] };
+        h.x += (mouse.x - h.x) * snake.speed;
+        h.y += (mouse.y - h.y) * snake.speed;
+        snake.segments.unshift(h);
+        while (snake.segments.length > snake.length) snake.segments.pop();
+
+        if (gameActive) {
+            // 2. 2D Spiel-Partikel Logik
+            if(particles.length < 30) spawnParticle(Math.random() < 0.2);
+            for (let i = particles.length - 1; i >= 0; i--) {
+                let p = particles[i];
+                p.x += p.vx; p.y += p.vy;
+                if (p.x < 0 || p.x > width) p.vx *= -1;
+                if (p.y < 0 || p.y > height) p.vy *= -1;
+                
+                // Kollision mit Schlange
+                if (Math.hypot(h.x - p.x, h.y - p.y) < 20) {
+                    createPop(p.x, p.y, p.color);
+                    score += p.isRed ? 10 : 2;
+                    snake.length += p.isRed ? 4 : 1;
+                    scoreElement.innerText = score;
+                    particles.splice(i, 1);
+                    checkMilestones();
+                }
+            }
+        }
+
+        // 3. NEU: 3D-Fäden Update & Dodge-Logik
+        if(visualLines.length < 80) spawnVisualLine(2000);
+        
+        let fov = 400; // Sichtfeld für Projektion
+        for (let i = visualLines.length - 1; i >= 0; i--) {
+            let vl = visualLines[i];
+            vl.z -= vl.speed;
+
+            // Wenn der Faden hinter der Kamera ist -> löschen
+            if (vl.z <= 10) {
+                visualLines.splice(i, 1);
+                continue;
+            }
+
+            // Berechne, wo der Faden auf dem 2D-Bildschirm zu sehen ist
+            let scale = fov / vl.z;
+            let projX = vl.x * scale + width / 2;
+            let projY = vl.y * scale + height / 2;
+
+            // DODGE-LOGIK: Wie weit ist der Faden von der Maus weg?
+            let dx = projX - mouse.x;
+            let dy = projY - mouse.y;
+            let dist = Math.hypot(dx, dy);
+
+            let dodgeRadius = 250; // In diesem Umkreis weichen sie aus
+            if (dist < dodgeRadius && dist > 0) {
+                // Je näher die Maus, desto stärker der "Abstoß"-Effekt
+                let force = (dodgeRadius - dist) / dodgeRadius;
+                
+                // Schiebe die echten 3D-Koordinaten sanft nach außen weg von der Maus
+                vl.x += (dx / dist) * force * 15;
+                vl.y += (dy / dist) * force * 15;
+            }
+        }
+
+        // 4. Effekte updaten
+        fireworks.forEach((f, i) => {
+            f.x += f.vx; f.y += f.vy; f.life -= f.decay;
+            if (f.life <= 0) fireworks.splice(i, 1);
+        });
+        pops.forEach((p, i) => {
+            p.x += p.vx; p.y += p.vy; p.life -= 0.04;
+            if (p.life <= 0) pops.splice(i, 1);
+        });
+    }
+
+    function draw() {
+        ctx.clearRect(0, 0, width, height);
+        
+        // 1. Zeichne 3D-Fäden (Hintergrund)
+        let fov = 400;
+        ctx.lineCap = 'round';
+        visualLines.forEach(vl => {
+            // "Kopf" des Fadens (näher dran)
+            let scaleHead = fov / vl.z;
+            let hx = vl.x * scaleHead + width / 2;
+            let hy = vl.y * scaleHead + height / 2;
+
+            // "Schwanz" des Fadens (weiter weg auf der Z-Achse)
+            let scaleTail = fov / (vl.z + vl.length);
+            let tx = vl.x * scaleTail + width / 2;
+            let ty = vl.y * scaleTail + height / 2;
+
+            // Fade-in Effekt in der Tiefe
+            let alpha = Math.min(1, (2000 - vl.z) / 1000);
+            
+            ctx.globalAlpha = alpha;
+            ctx.beginPath();
+            ctx.strokeStyle = vl.color;
+            ctx.lineWidth = Math.max(0.5, scaleHead * 2); // Linien werden dicker, je näher sie kommen
+            ctx.moveTo(hx, hy);
+            ctx.lineTo(tx, ty);
+            ctx.stroke();
+        });
+
+        ctx.globalAlpha = 1.0;
+
+        // 2. Zeichne Pops (Effekte)
+        pops.forEach(p => {
+            ctx.globalAlpha = p.life; ctx.fillStyle = p.color;
+            ctx.beginPath(); ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2); ctx.fill();
+        });
+
+        // 3. Zeichne 2D-Spiel-Partikel
+        particles.forEach(p => {
+            ctx.globalAlpha = 0.5; ctx.strokeStyle = p.color; ctx.lineWidth = 1.5;
+            ctx.beginPath(); ctx.arc(p.x, p.y, p.size / 2, 0, Math.PI * 2); ctx.stroke();
+            
+            // Leichter "Glüh"-Effekt für die Roten Zielpunkte
+            if (p.isRed) {
+                ctx.fillStyle = p.color;
+                ctx.globalAlpha = 0.2;
+                ctx.beginPath(); ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2); ctx.fill();
+            }
+        });
+
+        // 4. Zeichne Feuerwerk (Milestones)
+        fireworks.forEach(f => {
+            ctx.globalAlpha = f.life; ctx.fillStyle = f.color;
+            ctx.fillRect(f.x, f.y, f.size, f.size);
+        });
+
+        // 5. Zeichne die Schlange (Der Rote Faden im Vordergrund)
+        ctx.globalAlpha = 1.0;
+        if (snake.segments.length > 1) {
+            ctx.beginPath(); ctx.strokeStyle = '#d32f2f';
+            ctx.lineWidth = snake.baseWidth;
+            ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+            ctx.moveTo(snake.segments[0].x, snake.segments[0].y);
+            for (let i = 1; i < snake.segments.length; i++) ctx.lineTo(snake.segments[i].x, snake.segments[i].y);
+            ctx.stroke();
+        }
+    }
+
+    function animate() { update(); draw(); requestAnimationFrame(animate); }
+
+    // Scroll Logic
+    window.addEventListener('scroll', () => {
+        const scrolled = (window.scrollY / (document.documentElement.scrollHeight - window.innerHeight)) * 100;
+        document.getElementById('scroll-thread').style.height = scrolled + '%';
+        document.querySelectorAll('.reveal').forEach(el => {
+            if (el.getBoundingClientRect().top < window.innerHeight - 50) el.classList.add('active');
+        });
+    });
+
+    window.addEventListener('resize', resize);
+    init();
+</script>
+</body>
+</html>
