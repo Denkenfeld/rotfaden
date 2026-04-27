@@ -1,0 +1,732 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>VOXELSCAPE — Infinite Worlds</title>
+<link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+<style>
+:root {
+  --green: #7CFC00;
+  --dark: #080c14;
+  --sky: #8ECAE6;
+  --card-bg: rgba(5, 10, 20, 0.82);
+}
+* { margin:0; padding:0; box-sizing:border-box; }
+html, body { width:100%; height:100%; overflow-x:hidden; background:var(--dark); font-family:'Share Tech Mono',monospace; }
+
+#three-canvas { position:fixed; top:0; left:0; width:100vw; height:100vh; z-index:0; display:block; }
+#scroll-space  { position:relative; z-index:1; pointer-events:none; }
+
+/* ── UI OVERLAY ────────────────────────────────── */
+#ui { position:fixed; top:0; left:0; width:100%; height:100%; z-index:10; pointer-events:none; }
+
+/* top bar */
+#topbar {
+  position:absolute; top:0; left:0; right:0;
+  padding:18px 28px;
+  display:flex; justify-content:space-between; align-items:center;
+  background:linear-gradient(to bottom,rgba(0,0,0,0.5) 0%,transparent 100%);
+}
+#logo {
+  font-family:'Press Start 2P',monospace; font-size:13px;
+  color:var(--green); letter-spacing:3px;
+  text-shadow:0 0 14px rgba(124,252,0,0.55);
+}
+#badges { display:flex; gap:8px; align-items:center; }
+.badge {
+  font-size:9px; padding:4px 10px;
+  background:rgba(0,0,0,0.55);
+  border:1px solid rgba(124,252,0,0.35);
+  color:rgba(124,252,0,0.75);
+  font-family:'Share Tech Mono',monospace;
+  letter-spacing:1px;
+  animation:pulseBorder 2.4s ease-in-out infinite;
+}
+.badge.webgl { border-color:rgba(100,200,255,0.35); color:rgba(100,200,255,0.75); }
+@keyframes pulseBorder {
+  0%,100%{ box-shadow:none; }
+  50%{ box-shadow:0 0 8px rgba(124,252,0,0.25); }
+}
+
+/* ── HERO ──────────────────────────────────────── */
+#hero {
+  position:absolute; top:50%; left:50%;
+  transform:translate(-50%,-50%);
+  text-align:center;
+  transition:opacity .7s ease, transform .7s ease;
+  pointer-events:all;
+}
+#hero h1 {
+  font-family:'Press Start 2P',monospace;
+  font-size:clamp(28px,6vw,72px);
+  color:#fff; letter-spacing:6px; line-height:1.3;
+  text-shadow: 5px 5px 0 rgba(30,80,20,.9), 0 0 50px rgba(124,252,0,.35);
+}
+#hero .sub {
+  margin-top:18px; font-size:clamp(10px,1.5vw,13px);
+  color:rgba(255,255,255,.75); letter-spacing:3px; line-height:2;
+}
+#hero .hint {
+  margin-top:34px;
+  font-family:'Press Start 2P',monospace; font-size:8px;
+  color:rgba(255,255,255,.5); letter-spacing:2px;
+  animation:bounce 1.6s ease-in-out infinite;
+}
+@keyframes bounce { 0%,100%{ transform:translateY(0); } 50%{ transform:translateY(10px); } }
+
+/* ── INFO CARDS ────────────────────────────────── */
+.icard {
+  position:absolute;
+  background:var(--card-bg);
+  border:2px solid rgba(124,252,0,.28);
+  padding:26px 28px;
+  max-width:300px;
+  opacity:0;
+  pointer-events:none;
+  backdrop-filter:blur(14px);
+  transition:opacity .65s ease, transform .65s ease;
+  box-shadow:0 0 30px rgba(0,0,0,.5);
+}
+.icard.show { opacity:1; pointer-events:all; }
+.icard .zone {
+  font-size:8px; color:rgba(255,255,255,.35);
+  text-transform:uppercase; letter-spacing:2px; margin-bottom:10px;
+}
+.icard h2 {
+  font-family:'Press Start 2P',monospace; font-size:11px;
+  color:var(--green); margin-bottom:14px; line-height:1.6; letter-spacing:1px;
+}
+.icard p { font-size:12px; color:rgba(255,255,255,.78); line-height:1.95; }
+
+#card-forest   { left:28px; top:50%; transform:translateY(-50%) translateX(-30px); }
+#card-forest.show { transform:translateY(-50%) translateX(0); }
+#card-mountain { right:28px; top:42%; transform:translateY(-42%) translateX(30px); }
+#card-mountain.show { transform:translateY(-42%) translateX(0); }
+#card-desert   { left:28px; top:48%; transform:translateY(-48%) translateX(-30px); }
+#card-desert.show { transform:translateY(-48%) translateX(0); }
+
+/* ── CTA SECTION ───────────────────────────────── */
+#cta {
+  position:absolute; bottom:90px; left:50%;
+  transform:translateX(-50%);
+  text-align:center;
+  opacity:0; pointer-events:none;
+  transition:opacity .7s ease;
+}
+#cta.show { opacity:1; pointer-events:all; }
+#cta h2 {
+  font-family:'Press Start 2P',monospace;
+  font-size:clamp(13px,3vw,22px); color:#fff; line-height:1.6;
+  text-shadow:0 0 25px rgba(124,252,0,.45);
+  margin-bottom:28px; letter-spacing:2px;
+}
+.btn {
+  display:inline-block;
+  font-family:'Press Start 2P',monospace; font-size:9px;
+  padding:13px 22px; margin:5px;
+  cursor:pointer; text-decoration:none; letter-spacing:1px;
+  transition:transform .1s, box-shadow .1s;
+  pointer-events:all;
+}
+.btn-primary { background:var(--green); color:#000; border:none; }
+.btn-secondary { background:transparent; color:var(--green); border:2px solid var(--green); }
+.btn:hover { transform:translate(-2px,-2px); box-shadow:4px 4px 0 rgba(124,252,0,.35); }
+.btn:active { transform:translate(0,0); box-shadow:none; }
+
+/* ── PROGRESS DOTS (right side) ────────────────── */
+#dots {
+  position:absolute; right:18px; top:50%;
+  transform:translateY(-50%);
+  display:flex; flex-direction:column; gap:10px; align-items:center;
+}
+.dot {
+  width:9px; height:9px;
+  background:rgba(255,255,255,.2);
+  border:1px solid rgba(255,255,255,.35);
+  transition:background .3s, transform .3s, box-shadow .3s;
+  cursor:pointer; pointer-events:all;
+}
+.dot.on {
+  background:var(--green); border-color:var(--green);
+  transform:scale(1.45);
+  box-shadow:0 0 10px rgba(124,252,0,.6);
+}
+.dot-label {
+  font-size:7px; color:rgba(255,255,255,.35);
+  writing-mode:vertical-rl; letter-spacing:1px;
+  display:none;
+}
+
+/* ── ZONE BAR (bottom center) ──────────────────── */
+#zonebar {
+  position:absolute; bottom:22px; left:50%; transform:translateX(-50%);
+  text-align:center; opacity:0; transition:opacity .5s;
+}
+#zonebar.show { opacity:1; }
+#zone-name {
+  font-family:'Press Start 2P',monospace; font-size:9px;
+  color:rgba(255,255,255,.65); letter-spacing:3px; margin-bottom:8px;
+}
+#zone-track { width:200px; height:3px; background:rgba(255,255,255,.1); margin:0 auto; }
+#zone-fill  { height:100%; background:var(--green); width:0%; transition:width .3s; }
+
+/* ── MINIMAP ───────────────────────────────────── */
+#minimap-wrap {
+  position:absolute; bottom:70px; right:18px;
+  border:2px solid rgba(124,252,0,.35); line-height:0;
+  opacity:.85;
+}
+#minimap { display:block; image-rendering:pixelated; }
+#cam-marker {
+  position:absolute; left:0; right:0; height:3px;
+  background:rgba(124,252,0,.85);
+  pointer-events:none;
+}
+
+/* ── TOOLTIP ───────────────────────────────────── */
+#tip {
+  position:fixed; z-index:20; padding:7px 11px;
+  background:rgba(0,0,0,.85); border:1px solid rgba(255,255,255,.18);
+  font-size:11px; color:#fff; pointer-events:none;
+  opacity:0; transition:opacity .15s;
+}
+
+/* ── SCAN LINES ────────────────────────────────── */
+#scan {
+  position:fixed; top:0; left:0; right:0; bottom:0;
+  background:repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(0,0,0,.025) 2px,rgba(0,0,0,.025) 4px);
+  pointer-events:none; z-index:15;
+}
+
+/* ── LOADING ───────────────────────────────────── */
+#loading {
+  position:fixed; top:0; left:0; right:0; bottom:0;
+  background:#080c14; z-index:100;
+  display:flex; flex-direction:column; align-items:center; justify-content:center;
+  transition:opacity .6s ease;
+}
+#loading.gone { opacity:0; pointer-events:none; }
+#load-title {
+  font-family:'Press Start 2P',monospace; font-size:22px;
+  color:var(--green); margin-bottom:32px;
+  text-shadow:0 0 24px rgba(124,252,0,.55);
+}
+#load-track { width:280px; height:8px; background:rgba(255,255,255,.08); border:1px solid rgba(255,255,255,.15); }
+#load-fill  { height:100%; background:var(--green); width:0%; transition:width .12s; }
+#load-text  { margin-top:14px; font-size:10px; color:rgba(255,255,255,.4); letter-spacing:1px; }
+</style>
+
+<script type="importmap">
+{
+  "imports": {
+    "three": "https://unpkg.com/three@0.167.0/build/three.module.js",
+    "three/addons/": "https://unpkg.com/three@0.167.0/examples/jsm/"
+  }
+}
+</script>
+</head>
+<body>
+
+<canvas id="three-canvas"></canvas>
+<div id="scroll-space"></div>
+
+<div id="ui">
+  <div id="topbar">
+    <div id="logo">VOXELSCAPE</div>
+    <div id="badges">
+      <div class="badge" id="render-badge">⬡ WEBGPU</div>
+      <div class="badge" id="block-badge">0 BLOCKS</div>
+    </div>
+  </div>
+
+  <div id="hero">
+    <h1>VOXEL<br>SCAPE</h1>
+    <p class="sub">AN INFINITE WORLD · ONE BLOCK AT A TIME<br>PROCEDURAL · EXPLORABLE · ALIVE</p>
+    <p class="hint">▼ &nbsp; SCROLL TO JOURNEY SOUTH &nbsp; ▼</p>
+  </div>
+
+  <div class="icard" id="card-forest">
+    <div class="zone">// ZONE 02 · ANCIENT FOREST</div>
+    <h2>THE GREAT<br>WOODS</h2>
+    <p>Ancient oaks stretch skyward, their canopies weaving a living tapestry of emerald shadow. Every trunk hides a thousand-year story carved in bark and moss.</p>
+  </div>
+
+  <div class="icard" id="card-mountain">
+    <div class="zone">// ZONE 03 · STONE PEAKS</div>
+    <h2>IRON<br>MOUNTAINS</h2>
+    <p>Snow-crowned giants pierce the clouds. The ancient stone holds veins of ore forged by the planet's own heat — waiting in silence for the first pickaxe to strike.</p>
+  </div>
+
+  <div class="icard" id="card-desert">
+    <div class="zone">// ZONE 04 · ENDLESS SANDS</div>
+    <h2>AMBER<br>WASTES</h2>
+    <p>Wind has sculpted the sandstone into impossible forms. Cacti stand as silent sentinels over a land both merciless and breathtakingly beautiful.</p>
+  </div>
+
+  <div id="cta">
+    <h2>THE WORLD<br>AWAITS</h2>
+    <a href="#" class="btn btn-primary" id="btn-restart">↑ RETURN TO SPAWN</a>
+    <a href="#" class="btn btn-secondary" id="btn-src" title="Click blocks to interact!">⬡ CLICK BLOCKS</a>
+  </div>
+
+  <div id="dots">
+    <div class="dot on"  data-i="0" title="Spawn Plains"></div>
+    <div class="dot"     data-i="1" title="Ancient Forest"></div>
+    <div class="dot"     data-i="2" title="Iron Mountains"></div>
+    <div class="dot"     data-i="3" title="Amber Wastes"></div>
+    <div class="dot"     data-i="4" title="Sunken Shores"></div>
+  </div>
+
+  <div id="zonebar">
+    <div id="zone-name">SPAWN PLAINS</div>
+    <div id="zone-track"><div id="zone-fill"></div></div>
+  </div>
+
+  <div id="minimap-wrap">
+    <canvas id="minimap" width="80" height="120"></canvas>
+    <div id="cam-marker"></div>
+  </div>
+</div>
+
+<div id="scan"></div>
+<div id="tip"></div>
+
+<div id="loading">
+  <div id="load-title">VOXELSCAPE</div>
+  <div id="load-track"><div id="load-fill"></div></div>
+  <div id="load-text">LOADING ENGINE...</div>
+</div>
+
+<!-- ════════════════════════════════════════════════ -->
+<script type="module">
+import * as THREE from 'three';
+
+/* ── HELPERS ──────────────────────────────────── */
+const $ = id => document.getElementById(id);
+function setLoad(p,t){ $('load-fill').style.width=p+'%'; $('load-text').textContent=t; }
+function fract(x){ return x-Math.floor(x); }
+function lerp(a,b,t){ return a+(b-a)*t; }
+function clamp(x,lo,hi){ return Math.max(lo,Math.min(hi,x)); }
+function smoothstep(e0,e1,x){ const t=clamp((x-e0)/(e1-e0),0,1); return t*t*(3-2*t); }
+
+/* ── NOISE ────────────────────────────────────── */
+function h2(x,z){ return fract(Math.sin((x+100)*127.1+(z+100)*311.7)*43758.5453); }
+function vnoise(x,z){
+  const ix=Math.floor(x),iz=Math.floor(z);
+  const fx=x-ix,fz=z-iz;
+  const ux=fx*fx*(3-2*fx),uz=fz*fz*(3-2*fz);
+  return lerp(lerp(h2(ix,iz),h2(ix+1,iz),ux),lerp(h2(ix,iz+1),h2(ix+1,iz+1),ux),uz);
+}
+function fbm(x,z,o=5){
+  let v=0,a=.5,f=1,m=0;
+  for(let i=0;i<o;i++){ v+=vnoise(x*f,z*f)*a; m+=a; a*=.5; f*=2.1; }
+  return v/m;
+}
+
+/* ── WORLD CONSTANTS ─────────────────────────── */
+const WW=40, WD=180, WATER_LVL=3;
+
+const B={AIR:0,GRASS:1,DIRT:2,STONE:3,WOOD:4,LEAVES:5,SAND:6,WATER:7,SNOW:8,GRAVEL:9,CACTUS:10,SANDSTONE:11,BRICK:12};
+const BI={
+  [B.GRASS]:    {hex:0x56A135,name:'Grass Block'},
+  [B.DIRT]:     {hex:0x8B5E3C,name:'Dirt'},
+  [B.STONE]:    {hex:0x797979,name:'Stone'},
+  [B.WOOD]:     {hex:0x6B4226,name:'Oak Wood'},
+  [B.LEAVES]:   {hex:0x2B7522,name:'Oak Leaves'},
+  [B.SAND]:     {hex:0xD4C462,name:'Sand'},
+  [B.WATER]:    {hex:0x1A4FCC,name:'Water',alpha:true,op:.72},
+  [B.SNOW]:     {hex:0xDCEEF5,name:'Snow Block'},
+  [B.GRAVEL]:   {hex:0x8A7C6E,name:'Gravel'},
+  [B.CACTUS]:   {hex:0x3A8C2A,name:'Cactus'},
+  [B.SANDSTONE]:{hex:0xC4A84A,name:'Sandstone'},
+  [B.BRICK]:    {hex:0x919191,name:'Stone Bricks'},
+};
+
+/* ── HEIGHT MAP ──────────────────────────────── */
+setLoad(10,'SCULPTING TERRAIN...');
+const HM=[];
+function getH(x,z){
+  const n=fbm(x*.07,z*.07), n2=fbm(x*.13+44,z*.13+44);
+  if(z<22)  return Math.max(2,Math.round(2.5+n*2.2));
+  if(z<52)  return Math.max(2,Math.round(lerp(2.5+n*2.2, 3+n*5, smoothstep(22,52,z))));
+  if(z<88)  return Math.max(2,Math.round(3+n*5));
+  if(z<118) return Math.max(2,Math.round(lerp(3+n*5, 4+Math.pow(n,.65)*10, smoothstep(88,118,z))));
+  if(z<135) return Math.max(2,Math.round(4+Math.pow(n,.65)*10));
+  if(z<155) return Math.max(2,Math.round(lerp(4+Math.pow(n,.65)*10, 2+n*2.5, smoothstep(135,155,z))));
+  if(z<168) return Math.max(2,Math.round(2+n*2.5));
+  return Math.max(1,Math.round(lerp(2+n*2.5, 1.2, smoothstep(168,178,z))));
+}
+for(let x=0;x<WW;x++){ HM[x]=[]; for(let z=0;z<WD;z++) HM[x][z]=getH(x,z); }
+
+/* ── SURFACE BLOCK TYPE ──────────────────────── */
+function surfType(x,y,z,sh){
+  if(z<95){
+    if(y===sh) return B.GRASS;
+    if(y>=sh-2) return B.DIRT;
+    return B.STONE;
+  } else if(z<148){
+    if(y===sh&&sh>=12) return B.SNOW;
+    if(y===sh&&sh>=8)  return B.STONE;
+    if(y===sh) return B.GRASS;
+    if(y>=sh-1) return B.DIRT;
+    if(y>=sh-3) return B.GRAVEL;
+    return B.STONE;
+  } else {
+    if(y>=sh-1) return B.SAND;
+    if(y===sh-2) return B.SANDSTONE;
+    return B.STONE;
+  }
+}
+
+/* ── BLOCK COLLECTOR ─────────────────────────── */
+const BL={};
+for(const t in BI) BL[t]=[];
+function ab(type,x,y,z){ BL[type].push(x+.5,y+.5,z+.5); }
+
+// Terrain layers (4 deep per column)
+for(let x=0;x<WW;x++) for(let z=0;z<WD;z++){
+  const sh=HM[x][z];
+  for(let y=Math.max(0,sh-3);y<=sh;y++) ab(surfType(x,y,z,sh),x,y,z);
+  // water in ocean zone
+  if(z>=168) for(let y=sh+1;y<=WATER_LVL+1;y++) ab(B.WATER,x,y,z);
+}
+
+setLoad(30,'PLANTING TREES...');
+// Trees
+function placeTree(x,z){
+  const sh=HM[x][z];
+  for(let y=sh+1;y<=sh+4;y++) ab(B.WOOD,x,y,z);
+  for(let dy=-1;dy<=2;dy++) for(let dx=-2;dx<=2;dx++) for(let dz=-2;dz<=2;dz++){
+    if(dx*dx+dz*dz+(dy-1)*(dy-1)<=5){
+      const lx=x+dx,lz=z+dz;
+      if(lx>0&&lx<WW-1&&lz>0&&lz<WD-1) ab(B.LEAVES,lx,sh+4+dy,lz);
+    }
+  }
+}
+for(let x=1;x<WW-1;x++) for(let z=28;z<138;z++){
+  const dens = z<55?.94:(z<92?.83:.93);
+  if(h2(x*3.9+11,z*7.1+33)>dens && surfType(x,HM[x][z],z,HM[x][z])===B.GRASS) placeTree(x,z);
+}
+
+setLoad(45,'PLACING STRUCTURES...');
+// Cactus
+for(let x=1;x<WW-1;x++) for(let z=152;z<170;z++){
+  if(h2(x*5.3+22,z*11.7+88)>.91){
+    const sh=HM[x][z];
+    const ch=2+Math.floor(h2(x*2.1,z*5.5)*2);
+    for(let y=sh+1;y<=sh+ch;y++) ab(B.CACTUS,x,y,z);
+  }
+}
+
+// Village buildings
+const BLDGS=[
+  {x:4,z:6,w:5,d:5,h:4},{x:16,z:5,w:4,d:6,h:5},{x:26,z:11,w:6,d:4,h:3},
+  {x:8,z:17,w:3,d:3,h:4},{x:21,z:19,w:5,d:5,h:3},{x:32,z:8,w:4,d:4,h:5},
+];
+for(const b of BLDGS){
+  const bh=HM[clamp(b.x+Math.floor(b.w/2),0,WW-1)][clamp(b.z+Math.floor(b.d/2),0,WD-1)];
+  for(let dx=0;dx<b.w;dx++) for(let dz=0;dz<b.d;dz++){
+    const bx=b.x+dx,bz=b.z+dz;
+    if(bx<0||bx>=WW||bz<0||bz>=WD) continue;
+    if(dx===0||dx===b.w-1||dz===0||dz===b.d-1)
+      for(let y=bh+1;y<=bh+b.h;y++) ab(B.BRICK,bx,y,bz);
+  }
+}
+
+/* ── RENDERER INIT ───────────────────────────── */
+setLoad(60,'INITIALIZING RENDERER...');
+const canvas=$('three-canvas');
+let renderer, isGPU=false;
+try{
+  const {default:WR}=await import('three/addons/renderers/webgpu/WebGPURenderer.js');
+  renderer=new WR({canvas,antialias:true});
+  await renderer.init();
+  isGPU=true;
+  $('render-badge').textContent='⬡ WEBGPU';
+}catch(e){
+  renderer=new THREE.WebGLRenderer({canvas,antialias:true,powerPreference:'high-performance'});
+  $('render-badge').textContent='⬡ WEBGL';
+  $('render-badge').classList.add('webgl');
+}
+renderer.setSize(window.innerWidth,window.innerHeight);
+renderer.setPixelRatio(Math.min(window.devicePixelRatio,2));
+renderer.shadowMap.enabled=true;
+renderer.shadowMap.type=THREE.PCFSoftShadowMap;
+
+/* ── SCENE ───────────────────────────────────── */
+const scene=new THREE.Scene();
+scene.background=new THREE.Color(0x8EC8E8);
+scene.fog=new THREE.Fog(0x8EC8E8,55,135);
+
+const camera=new THREE.PerspectiveCamera(62,window.innerWidth/window.innerHeight,.1,500);
+
+// Lighting
+const sun=new THREE.DirectionalLight(0xFFF5E4,1.9);
+sun.position.set(-3,5,-2);
+sun.castShadow=true;
+sun.shadow.mapSize.width=1024; sun.shadow.mapSize.height=1024;
+sun.shadow.camera.near=1; sun.shadow.camera.far=200;
+sun.shadow.camera.left=-60; sun.shadow.camera.right=60;
+sun.shadow.camera.top=60; sun.shadow.camera.bottom=-60;
+scene.add(sun);
+scene.add(new THREE.HemisphereLight(0x87CEEB,0x4E7F2A,.75));
+scene.add(new THREE.AmbientLight(0x405570,.4));
+
+/* ── INSTANCED MESHES ────────────────────────── */
+setLoad(75,'BUILDING WORLD MESH...');
+const geo=new THREE.BoxGeometry(1,1,1);
+const dummy=new THREE.Object3D();
+const meshes={};
+const typeMap=new Map();
+let totalBlocks=0;
+
+const col=new THREE.Color();
+for(const t in BI){
+  const arr=BL[t];
+  if(!arr||arr.length===0) continue;
+  const cnt=arr.length/3;
+  totalBlocks+=cnt;
+  const info=BI[t];
+  const mat=new THREE.MeshStandardMaterial({
+    color:info.hex,
+    roughness:.85, metalness:.05,
+    transparent:info.alpha||false,
+    opacity:info.op||1,
+    depthWrite:!info.alpha,
+  });
+  const mesh=new THREE.InstancedMesh(geo,mat,cnt);
+  mesh.castShadow=true; mesh.receiveShadow=true;
+  for(let i=0;i<cnt;i++){
+    dummy.position.set(arr[i*3],arr[i*3+1],arr[i*3+2]);
+    dummy.updateMatrix();
+    mesh.setMatrixAt(i,dummy.matrix);
+    col.setHex(info.hex);
+    const hsl={};
+    col.getHSL(hsl);
+    const v=(Math.random()-.5)*.09;
+    col.setHSL(hsl.h,hsl.s,clamp(hsl.l+v,.1,.9));
+    mesh.setColorAt(i,col);
+  }
+  mesh.instanceMatrix.needsUpdate=true;
+  if(mesh.instanceColor) mesh.instanceColor.needsUpdate=true;
+  scene.add(mesh);
+  meshes[t]=mesh;
+  typeMap.set(mesh,parseInt(t));
+}
+$('block-badge').textContent=totalBlocks.toLocaleString()+' BLOCKS';
+
+/* ── MINIMAP ─────────────────────────────────── */
+const mmCanvas=$('minimap');
+const mmCtx=mmCanvas.getContext('2d');
+const offsc=document.createElement('canvas');
+offsc.width=80; offsc.height=120;
+const oCtx=offsc.getContext('2d');
+for(let x=0;x<WW;x++) for(let z=0;z<WD;z++){
+  const sh=HM[x][z];
+  const bt=surfType(x,sh,z,sh);
+  const hex=(BI[bt]?.hex||0x888888).toString(16).padStart(6,'0');
+  oCtx.fillStyle='#'+hex;
+  const mx=Math.floor(x*80/WW), mz=Math.floor(z*120/WD);
+  oCtx.fillRect(mx,mz,Math.max(1,Math.ceil(80/WW)),Math.max(1,Math.ceil(120/WD)));
+}
+// Trees as darker green dots
+for(let x=0;x<WW;x++) for(let z=0;z<WD;z++){
+  if(BL[B.WOOD].length>0){
+    if(h2(x*3.9+11,z*7.1+33)>.83&&z>28&&z<138){
+      const mx=Math.floor(x*80/WW), mz=Math.floor(z*120/WD);
+      oCtx.fillStyle='#1B5E1A';
+      oCtx.fillRect(mx,mz,2,2);
+    }
+  }
+}
+function drawMinimap(){
+  mmCtx.drawImage(offsc,0,0);
+}
+drawMinimap();
+
+/* ── SCROLL SYSTEM ───────────────────────────── */
+setLoad(90,'LOADING TERRAIN CHUNKS...');
+const SCROLL_H=window.innerHeight*7;
+$('scroll-space').style.height=SCROLL_H+'px';
+const CAM_START=6, CAM_END=163;
+let camZ=CAM_START, targetCamZ=CAM_START;
+
+window.addEventListener('scroll',()=>{
+  const prog=window.scrollY/(SCROLL_H-window.innerHeight);
+  targetCamZ=CAM_START+prog*(CAM_END-CAM_START);
+  updateUI(prog);
+});
+
+/* ── UI LOGIC ────────────────────────────────── */
+const ZONES=[
+  {name:'SPAWN PLAINS',pct:0},
+  {name:'ANCIENT FOREST',pct:.19},
+  {name:'IRON MOUNTAINS',pct:.46},
+  {name:'AMBER WASTES',pct:.72},
+  {name:'SUNKEN SHORES',pct:.91},
+];
+const dots=document.querySelectorAll('.dot');
+dots.forEach((d,i)=>{
+  d.addEventListener('click',()=>{
+    const t=ZONES[i].pct;
+    window.scrollTo({top:t*(SCROLL_H-window.innerHeight),behavior:'smooth'});
+  });
+});
+
+$('btn-restart').addEventListener('click',e=>{
+  e.preventDefault();
+  window.scrollTo({top:0,behavior:'smooth'});
+});
+$('btn-src').addEventListener('click',e=>{
+  e.preventDefault();
+  playSound(440,.15);
+});
+
+let lastZone=-1;
+function updateUI(p){
+  // hero fade
+  const hero=$('hero');
+  const hAlpha=p<.10?1:clamp(1-(p-.10)/.08,0,1);
+  hero.style.opacity=hAlpha;
+  hero.style.transform=`translate(-50%,calc(-50% + ${p*50}px))`;
+
+  // cards
+  $('card-forest').classList.toggle('show',p>.20&&p<.43);
+  $('card-mountain').classList.toggle('show',p>.47&&p<.69);
+  $('card-desert').classList.toggle('show',p>.73&&p<.89);
+  $('cta').classList.toggle('show',p>.91);
+  $('zonebar').classList.toggle('show',p>.04);
+
+  // current zone
+  let ci=0;
+  for(let i=ZONES.length-1;i>=0;i--){ if(p>=ZONES[i].pct){ci=i;break;} }
+  if(ci!==lastZone){
+    $('zone-name').textContent=ZONES[ci].name;
+    lastZone=ci;
+  }
+  const nxt=ci<ZONES.length-1?ZONES[ci+1].pct:1;
+  const zp=(p-ZONES[ci].pct)/(nxt-ZONES[ci].pct);
+  $('zone-fill').style.width=clamp(zp*100,0,100)+'%';
+
+  dots.forEach((d,i)=>d.classList.toggle('on',i===ci));
+
+  // minimap camera marker
+  const mz=clamp(Math.floor(camZ*120/WD),0,117);
+  $('cam-marker').style.top=mz+'px';
+}
+
+/* ── RAYCASTING ──────────────────────────────── */
+const raycaster=new THREE.Raycaster();
+const mouse=new THREE.Vector2();
+const tip=$('tip');
+
+window.addEventListener('mousemove',e=>{
+  mouse.x=(e.clientX/window.innerWidth)*2-1;
+  mouse.y=-(e.clientY/window.innerHeight)*2+1;
+  tip.style.left=(e.clientX+15)+'px';
+  tip.style.top=(e.clientY-10)+'px';
+  raycaster.setFromCamera(mouse,camera);
+  const hits=raycaster.intersectObjects(Object.values(meshes));
+  if(hits.length){
+    const t=typeMap.get(hits[0].object);
+    tip.style.opacity='1';
+    tip.textContent='⬡ '+BI[t].name;
+    document.body.style.cursor='pointer';
+  } else {
+    tip.style.opacity='0';
+    document.body.style.cursor='default';
+  }
+});
+
+window.addEventListener('click',e=>{
+  if(e.target.closest('#ui')) return;
+  mouse.x=(e.clientX/window.innerWidth)*2-1;
+  mouse.y=-(e.clientY/window.innerHeight)*2+1;
+  raycaster.setFromCamera(mouse,camera);
+  const hits=raycaster.intersectObjects(Object.values(meshes));
+  if(!hits.length) return;
+  const {object:mesh,instanceId}=hits[0];
+  const c=new THREE.Color();
+  mesh.getColorAt(instanceId,c);
+  const orig=c.clone();
+  const hsl={};
+  c.getHSL(hsl);
+  c.setHSL(hsl.h,hsl.s,Math.min(.95,hsl.l+.35));
+  mesh.setColorAt(instanceId,c);
+  if(mesh.instanceColor) mesh.instanceColor.needsUpdate=true;
+  playSound(220,.12);
+  setTimeout(()=>{
+    mesh.setColorAt(instanceId,orig);
+    if(mesh.instanceColor) mesh.instanceColor.needsUpdate=true;
+  },200);
+});
+
+/* ── 8-BIT SOUND ─────────────────────────────── */
+function playSound(freq,vol){
+  try{
+    const ctx=new(window.AudioContext||window.webkitAudioContext)();
+    const osc=ctx.createOscillator();
+    const gain=ctx.createGain();
+    osc.connect(gain); gain.connect(ctx.destination);
+    osc.type='square';
+    osc.frequency.setValueAtTime(freq,ctx.currentTime);
+    osc.frequency.exponentialRampToValueAtTime(freq*.5,ctx.currentTime+.1);
+    gain.gain.setValueAtTime(vol,ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(.001,ctx.currentTime+.18);
+    osc.start(); osc.stop(ctx.currentTime+.18);
+  }catch(e){}
+}
+
+/* ── CAMERA ──────────────────────────────────── */
+const CX=WW/2;
+let introT=0, introDone=false;
+
+function updateCamera(){
+  camZ+=(targetCamZ-camZ)*.065;
+  if(!introDone){
+    introT=Math.min(1,introT+.008);
+    const ease=introT*introT*(3-2*introT);
+    camera.position.set(CX, lerp(55,22,ease), lerp(camZ-50,camZ-21,ease));
+    camera.lookAt(CX,0,camZ+3);
+    if(introT>=1) introDone=true;
+  } else {
+    camera.position.set(CX,22,camZ-21);
+    camera.lookAt(CX,0,camZ+3);
+  }
+  // Move sun slightly with camera
+  sun.position.z=camZ-40;
+  sun.target.position.set(CX,0,camZ);
+  sun.target.updateMatrixWorld();
+}
+
+/* ── RESIZE ──────────────────────────────────── */
+window.addEventListener('resize',()=>{
+  camera.aspect=window.innerWidth/window.innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(window.innerWidth,window.innerHeight);
+});
+
+/* ── ANIMATION LOOP ──────────────────────────── */
+const clock=new THREE.Clock();
+function animate(){
+  renderer.setAnimationLoop(animate);
+  const t=clock.getElapsedTime();
+  sun.position.set(Math.sin(t*.04)*4-3, 5, sun.position.z);
+  updateCamera();
+  drawMinimap();
+  renderer.render(scene,camera);
+}
+
+/* ── GO ──────────────────────────────────────── */
+setLoad(100,'WORLD READY!');
+setTimeout(()=>{
+  const ld=$('loading');
+  ld.classList.add('gone');
+  setTimeout(()=>ld.remove(),700);
+  updateUI(0);
+  animate();
+},900);
+</script>
+</body>
+</html>
