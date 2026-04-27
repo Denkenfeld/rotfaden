@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>3D Voxel World</title>
+    <style>
+        :root {
+            --primary: #4ade80;
+            --bg-glass: rgba(15, 23, 42, 0.6);
+            --border-glass: rgba(255, 255, 255, 0.1);
+        }
+
+        body, html {
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            color: #fff;
+            background-color: #000;
+            overflow-x: hidden;
+        }
+
+        #canvas-container {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            z-index: -1;
+        }
+
+        .scroll-container {
+            position: relative;
+            z-index: 1;
+            height: 400vh; 
+            pointer-events: none; 
+        }
+
+        section {
+            width: 100%;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            pointer-events: none;
+        }
+
+        .content-box {
+            background: var(--bg-glass);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid var(--border-glass);
+            padding: 3rem;
+            border-radius: 24px;
+            max-width: 600px;
+            text-align: center;
+            pointer-events: auto; 
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+            transform: translateY(0);
+            transition: transform 0.3s ease;
+        }
+
+        .content-box:hover {
+            transform: translateY(-5px);
+        }
+
+        h1 {
+            font-size: 3.5rem;
+            margin: 0 0 1rem 0;
+            background: linear-gradient(to right, #4ade80, #3b82f6);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        h2 {
+            font-size: 2rem;
+            margin: 0 0 1rem 0;
+        }
+
+        p {
+            font-size: 1.1rem;
+            line-height: 1.6;
+            color: #cbd5e1;
+            margin-bottom: 2rem;
+        }
+
+        .btn {
+            display: inline-block;
+            background: var(--primary);
+            color: #0f172a;
+            padding: 1rem 2rem;
+            font-size: 1.1rem;
+            font-weight: bold;
+            text-decoration: none;
+            border-radius: 12px;
+            border: none;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .btn:hover {
+            background: #22c55e;
+            box-shadow: 0 0 20px rgba(74, 222, 128, 0.4);
+            transform: scale(1.05);
+        }
+    </style>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+</head>
+<body>
+
+    <div id="canvas-container"></div>
+
+    <div class="scroll-container">
+        <section>
+            <div class="content-box">
+                <h1>Voxelscape 3D</h1>
+                <p>The 3D space is now working! This world is rendered using Three.js. Scroll down to travel south across the infinite grid.</p>
+                <button class="btn" onclick="alert('Welcome to the Voxel World!')">Start Exploring</button>
+            </div>
+        </section>
+
+        <section>
+            <div class="content-box">
+                <h2>Procedural Terrain</h2>
+                <p>Every block you see is generated using mathematical sine and cosine waves. We are rendering 45,000 blocks at 60 frames per second.</p>
+            </div>
+        </section>
+
+        <section>
+            <div class="content-box">
+                <h2>45° Isometric View</h2>
+                <p>The camera is locked at a perfect birds-eye perspective. As you scroll the webpage, a listener calculates the offset and smoothly lerps the camera along the Z-axis.</p>
+            </div>
+        </section>
+        
+        <section style="align-items: flex-end; padding-bottom: 10vh;">
+            <div class="content-box">
+                <h2>End of the Map?</h2>
+                <p>You've scrolled to the end of the content. Hit the button to go back to the top!</p>
+                <button class="btn" onclick="window.scrollTo({ top: 0, behavior: 'smooth' })">Back to Top</button>
+            </div>
+        </section>
+    </div>
+
+    <script>
+        // 1. Scene Setup
+        const container = document.getElementById('canvas-container');
+        const scene = new THREE.Scene();
+        scene.background = new THREE.Color(0x87CEEB); 
+        scene.fog = new THREE.Fog(0x87CEEB, 20, 100); 
+
+        // 2. Camera Setup (45 degree bird perspective)
+        const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 200);
+        const cameraHeight = 40;
+        const cameraOffset = 40;
+        camera.position.set(cameraOffset, cameraHeight, cameraOffset);
+        camera.lookAt(0, 0, 0);
+
+        // 3. Standard WebGL Renderer (Works via double-click without a server)
+        const renderer = new THREE.WebGLRenderer({ antialias: true });
+        renderer.setPixelRatio(window.devicePixelRatio);
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        container.appendChild(renderer.domElement);
+
+        // 4. Lighting
+        const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
+        scene.add(ambientLight);
+
+        const dirLight = new THREE.DirectionalLight(0xffffff, 1.0);
+        dirLight.position.set(50, 100, 20);
+        scene.add(dirLight);
+
+        // 5. Voxel World Generation
+        const gridSizeX = 150;
+        const gridSizeZ = 300; 
+        const geometry = new THREE.BoxGeometry(1, 1, 1);
+        const material = new THREE.MeshLambertMaterial({ color: 0xffffff });
+
+        const instancedMesh = new THREE.InstancedMesh(geometry, material, gridSizeX * gridSizeZ);
+        const dummy = new THREE.Object3D();
+        const color = new THREE.Color();
+
+        let instanceIdx = 0;
+
+        for (let x = 0; x < gridSizeX; x++) {
+            for (let z = 0; z < gridSizeZ; z++) {
+                const worldX = x - gridSizeX / 2;
+                const worldZ = z - 50; 
+
+                // Math to make terrain wavy
+                let y = Math.floor(
+                    Math.sin(worldX * 0.1) * 2.5 + 
+                    Math.cos(worldZ * 0.1) * 2.5 + 
+                    Math.sin((worldX + worldZ) * 0.05) * 2
+                );
+
+                dummy.position.set(worldX, y, worldZ);
+                dummy.updateMatrix();
+                instancedMesh.setMatrixAt(instanceIdx, dummy.matrix);
+
+                // Biome coloring
+                if (y < -1) color.setHex(0x3b82f6); // Water
+                else if (y < 2) color.setHex(0x4ade80); // Grass
+                else if (y < 4) color.setHex(0x22c55e); // Forest
+                else if (y < 6) color.setHex(0x78716c); // Stone
+                else color.setHex(0xf8fafc); // Snow
+
+                instancedMesh.setColorAt(instanceIdx, color);
+                instanceIdx++;
+            }
+        }
+        scene.add(instancedMesh);
+
+        // 6. Scroll Interaction Logic
+        let targetZ = 0;
+        let currentZ = 0;
+
+        window.addEventListener('scroll', () => {
+            const scrollPercent = window.scrollY / (document.body.scrollHeight - window.innerHeight);
+            targetZ = scrollPercent * 150; // Distance to travel south
+        });
+
+        // 7. Window Resize
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+
+        // 8. Animation Loop
+        function animate() {
+            requestAnimationFrame(animate);
+
+            // Lerp camera for smooth scrolling
+            currentZ += (targetZ - currentZ) * 0.05;
+            camera.position.x = cameraOffset;
+            camera.position.y = cameraHeight;
+            camera.position.z = cameraOffset + currentZ;
+            camera.lookAt(0, 0, currentZ);
+
+            renderer.render(scene, camera);
+        }
+        animate();
+    </script>
+</body>
+</html>
