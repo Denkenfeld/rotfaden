@@ -20,7 +20,6 @@
             background-color: var(--bg-color);
             font-family: var(--font-main);
             overflow-x: hidden;
-            /* Subtiler, organischer Farbverlauf im Hintergrund */
             background: linear-gradient(-45deg, #fdfbfb, #f3f4f6, #eef2f3, #ffffff);
             background-size: 400% 400%;
             animation: gradientBG 15s ease infinite;
@@ -33,7 +32,6 @@
             100% { background-position: 0% 50%; }
         }
 
-        /* --- GLASSMORPHISM CLASSES --- */
         .glass {
             background: rgba(255, 255, 255, 0.4);
             backdrop-filter: blur(12px);
@@ -47,7 +45,6 @@
             box-shadow: 0 15px 40px 0 rgba(31, 38, 135, 0.12);
         }
 
-        /* --- SCROLL ANIMATIONS --- */
         .reveal {
             opacity: 0;
             transform: translateY(40px);
@@ -62,7 +59,6 @@
         .reveal-delay-2 { transition-delay: 0.2s; }
         .reveal-delay-3 { transition-delay: 0.3s; }
 
-        /* Bild-Zoom Effekt beim Scrollen/Hover */
         .img-organic {
             transition: transform 1.5s cubic-bezier(0.25, 0.46, 0.45, 0.94);
         }
@@ -70,7 +66,6 @@
             transform: scale(1.05);
         }
 
-        /* --- DER ROTE FADEN (Scroll Indikator) --- */
         #scroll-thread {
             position: fixed;
             top: 0;
@@ -78,17 +73,15 @@
             width: 3px;
             background: var(--red-thread);
             z-index: 100;
-            height: 0%; /* Wird durch JS gesteuert */
+            height: 0%;
             box-shadow: 0 0 10px rgba(211, 47, 47, 0.5);
             border-radius: 2px;
         }
 
-        /* Responsive Anpassung für den Faden */
         @media (min-width: 768px) {
             #scroll-thread { left: 40px; }
         }
 
-        /* --- SPIEL BEREICH STYLES --- */
         #game-container {
             position: relative;
             width: 100%;
@@ -98,7 +91,7 @@
             background: transparent;
             touch-action: none; 
             overflow: hidden;
-            margin-top: 80px; /* Platz für fixed Navbar */
+            margin-top: 80px;
         }
 
         canvas { 
@@ -233,11 +226,11 @@
 </header>
 
 <section id="ansatz" class="pt-10 md:pt-20 pb-24 px-6 md:px-12 max-w-7xl mx-auto relative">
-    <div class="text-center max-w-4xl mx-auto reveal">
-        <h1 class="text-4xl md:text-6xl font-light mb-8 tracking-tight text-gray-900 leading-tight">
-            Komplexität bekommt Form. <span style="color: var(--red-thread); font-weight: 700; position: relative;">Punkt für Punkt</span>.
+    <div class="text-center max-w-5xl mx-auto reveal">
+        <h1 class="text-4xl md:text-6xl font-light mb-4 md:mb-8 tracking-tight text-gray-900 leading-tight">
+            Komplexität bekommt Form.<br class="hidden md:block"> <span style="color: var(--red-thread); font-weight: 700; position: relative;">Punkt für Punkt</span>.
         </h1>
-        <p class="text-xl md:text-2xl text-gray-500 font-light leading-relaxed mb-10">
+        <p class="text-xl md:text-2xl lg:text-[1.4vw] lg:whitespace-nowrap text-gray-500 font-light leading-relaxed mb-10">
            Wir strukturieren komplexe Inhalte und entwickeln daraus klare Marken, Systeme und Produkte.
         </p>
     </div>
@@ -396,7 +389,6 @@
 </footer>
 
 <script>
-    /* --- 1. SPIEL LOGIK --- */
     const canvas = document.getElementById('gameCanvas');
     const container = document.getElementById('game-container');
     const ctx = canvas.getContext('2d');
@@ -619,9 +611,6 @@
     window.addEventListener('resize', resize);
     init();
 
-    /* --- 2. UI / SCROLL EFFEKTE --- */
-    
-    // Navbar Blur Effekt beim Scrollen
     const navbar = document.getElementById('navbar');
     window.addEventListener('scroll', () => {
         if (window.scrollY > 50) {
@@ -631,7 +620,6 @@
         }
     });
 
-    // "Roter Faden" Scroll-Indikator
     const scrollThread = document.getElementById('scroll-thread');
     window.addEventListener('scroll', () => {
         const scrollTop = document.documentElement.scrollTop;
@@ -640,7 +628,6 @@
         scrollThread.style.height = scrollPercentage + '%';
     });
 
-    // Fade-In Reveal Animationen beim Runterscrollen
     function reveal() {
         var reveals = document.querySelectorAll(".reveal");
         for (var i = 0; i < reveals.length; i++) {
@@ -655,7 +642,7 @@
     }
 
     window.addEventListener("scroll", reveal);
-    reveal(); // Initial call
+    reveal();
 
 </script>
 </body>
